@@ -4,10 +4,20 @@ import {
   faLocationDot,
   faArrowUpRightFromSquare,
   faStar,
+  faHeart,
 } from '@fortawesome/free-solid-svg-icons';
+import { useFavorites } from '../context/FavoritesContext';
 
 export default function PropertyCard({ listing }) {
   const { id, image, title, location, price, agent, rating } = listing;
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const saved = isFavorite(id);
+
+  const handleFavoriteClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(id);
+  };
 
   return (
     <article className="group relative aspect-[3/4] rounded-[24px] overflow-hidden shadow-card">
@@ -16,6 +26,19 @@ export default function PropertyCard({ listing }) {
         alt={title}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
+
+      <button
+        type="button"
+        onClick={handleFavoriteClick}
+        className={`absolute top-3 left-3 z-10 w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-colors ${
+          saved
+            ? 'bg-immo-orange text-white'
+            : 'bg-white/90 text-gray-500 hover:text-immo-orange'
+        }`}
+        aria-label={saved ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+      >
+        <FontAwesomeIcon icon={faHeart} className={`text-xs ${saved ? 'scale-110' : ''}`} />
+      </button>
 
       <div className="absolute inset-x-0 bottom-0 p-3">
         <div className="relative backdrop-blur-md bg-white/75 rounded-2xl p-4 pt-5">

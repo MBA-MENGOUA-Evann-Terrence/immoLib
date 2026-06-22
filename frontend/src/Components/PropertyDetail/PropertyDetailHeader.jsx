@@ -6,8 +6,12 @@ import {
   faShareNodes,
   faHeart,
 } from '@fortawesome/free-solid-svg-icons';
+import { useFavorites } from '../../context/FavoritesContext';
 
 export default function PropertyDetailHeader({ listing }) {
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const saved = isFavorite(listing.id);
+
   const badgeClass =
     listing.transaction === 'Vente'
       ? 'bg-blue-50 text-blue-600'
@@ -17,11 +21,11 @@ export default function PropertyDetailHeader({ listing }) {
     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
       <div>
         <Link
-          to="/"
+          to="/annonces"
           className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-immo-green transition-colors mb-4"
         >
           <FontAwesomeIcon icon={faArrowLeft} className="text-xs" />
-          Retour à la recherche
+          Retour aux annonces
         </Link>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -49,10 +53,15 @@ export default function PropertyDetailHeader({ listing }) {
         </button>
         <button
           type="button"
-          className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-immo-beige transition-colors"
+          onClick={() => toggleFavorite(listing.id)}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors ${
+            saved
+              ? 'border-immo-orange bg-immo-orange/10 text-immo-orange'
+              : 'border-gray-200 text-gray-700 hover:bg-immo-beige'
+          }`}
         >
           <FontAwesomeIcon icon={faHeart} className="text-xs" />
-          Sauvegarder
+          {saved ? 'Sauvegardé' : 'Sauvegarder'}
         </button>
       </div>
     </div>

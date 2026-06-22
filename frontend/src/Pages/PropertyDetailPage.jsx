@@ -9,14 +9,15 @@ import PropertyOverview from '../Components/PropertyDetail/PropertyOverview';
 import PropertyHighlights from '../Components/PropertyDetail/PropertyHighlights';
 import PropertyLocation from '../Components/PropertyDetail/PropertyLocation';
 import PropertySidebar from '../Components/PropertyDetail/PropertySidebar';
-import { getListingById } from '../data/listings';
+import { useListings } from '../context/ListingsContext';
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
+  const { getListingById } = useListings();
   const listing = getListingById(id);
 
   if (!listing) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/annonces" replace />;
   }
 
   return (

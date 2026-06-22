@@ -4,14 +4,12 @@ import {
   faUser,
   faPlus,
   faBars,
-  faChevronDown,
 } from '@fortawesome/free-solid-svg-icons';
 
 const navItems = [
-  { label: 'Accueil', to: '/', end: true, dropdown: false },
-  { label: 'Annonces', to: '/annonces', dropdown: true },
-  { label: 'Biens', to: '/biens', dropdown: true },
-  { label: 'Pages', to: '/pages', dropdown: true },
+  { label: 'Accueil', to: '/', end: true },
+  { label: 'Annonces', to: '/annonces' },
+  { label: 'Favoris', to: '/favoris' },
 ];
 
 const navLinkClass = ({ isActive }) =>
@@ -37,15 +35,10 @@ export default function NavBar() {
           </Link>
 
           <ul className="hidden lg:flex items-center justify-center gap-1">
-            {navItems.map(({ label, to, end, dropdown }) => (
+            {navItems.map(({ label, to, end }) => (
               <li key={to}>
                 <NavLink to={to} end={end} className={navLinkClass}>
-                  <span className="inline-flex items-center gap-1.5">
-                    {label}
-                    {dropdown && (
-                      <FontAwesomeIcon icon={faChevronDown} className="text-[10px] text-gray-400" />
-                    )}
-                  </span>
+                  {label}
                 </NavLink>
               </li>
             ))}

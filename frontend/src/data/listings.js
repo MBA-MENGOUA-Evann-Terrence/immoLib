@@ -1,6 +1,6 @@
 import propertyImage from '../assets/images/background_image.jpg';
 
-export const LISTINGS = [
+export const INITIAL_LISTINGS = [
   {
     id: 1,
     image: propertyImage,
@@ -219,6 +219,79 @@ export const LISTINGS = [
   },
 ];
 
-export function getListingById(id) {
-  return LISTINGS.find((listing) => listing.id === Number(id));
+export const LOCATIONS = [
+  'Akanda',
+  'Glass',
+  'Nzeng-Ayong',
+  'Libreville',
+  'Owendo',
+  'Ntoum',
+];
+
+export const PROPERTY_TYPES = [
+  'Appartement',
+  'Maison',
+  'Villa',
+  'Terrain',
+  'Bureau',
+  'Commerce',
+];
+
+function getInitials(name) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function formatPrice(value) {
+  return `${Number(value).toLocaleString('fr-FR')} FCFA`;
+}
+
+export function buildListing(formData, id) {
+  const priceNumeric = Number(formData.price);
+  const transaction = formData.transaction;
+  const downPayment =
+    transaction === 'Vente'
+      ? formatPrice(Math.round(priceNumeric * 0.2))
+      : `${formatPrice(Math.round(priceNumeric * 0.1))}/mois`;
+
+  return {
+    id,
+    image: propertyImage,
+    images: [propertyImage, propertyImage, propertyImage, propertyImage],
+    title: formData.title,
+    address: `${formData.address}, ${formData.location}, Gabon`,
+    location: `${formData.location}, Gabon`,
+    price: formatPrice(priceNumeric),
+    priceNumeric,
+    downPayment,
+    type: formData.type,
+    transaction,
+    beds: Number(formData.beds),
+    baths: Number(formData.baths),
+    sqft: Number(formData.sqft),
+    rating: 5.0,
+    description: formData.description,
+    highlights: [
+      { label: 'Type', value: formData.type, icon: 'home' },
+      { label: 'Charges', value: formData.charges || 'À définir', icon: 'fee' },
+      { label: 'Année', value: formData.year || new Date().getFullYear().toString(), icon: 'year' },
+      { label: 'Parking', value: formData.parking || 'Non précisé', icon: 'parking' },
+      { label: 'Meublé', value: formData.furnished || 'Non précisé', icon: 'furniture' },
+      { label: 'Étage', value: formData.floor || 'Non précisé', icon: 'floor' },
+    ],
+    agent: {
+      name: formData.contactName,
+      initials: getInitials(formData.contactName),
+      color: '#008080',
+      agency: 'Annonce particulier',
+      license: 'N/A',
+      phone: formData.contactPhone,
+      badges: ['Nouveau'],
+    },
+  };
 }

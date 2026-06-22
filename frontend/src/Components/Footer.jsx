@@ -5,7 +5,7 @@ import { FaFacebookF, FaInstagram, FaLinkedinIn, FaXTwitter } from 'react-icons/
 
 const quickLinks = [
   { label: 'Accueil', to: '/' },
-  { label: 'Annonces', to: '/#annonces' },
+  { label: 'Annonces', to: '/annonces' },
   { label: 'Favoris', to: '/favoris' },
   { label: 'Déposer une annonce', to: '/deposer' },
 ];
