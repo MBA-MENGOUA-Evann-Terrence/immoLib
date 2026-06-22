@@ -1,0 +1,58 @@
+
+.noellie-navbar {
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  
+  .noellie-brand {
+    font-family: 'Fraunces', serif; 
+    font-size: 2rem !important; 
+    font-weight: 700 !important;
+    color: #000000 !important; 
+    margin-right: 2rem !important; 
+  }
+  
+  
+  .noellie-navbar .navbar-nav {
+    gap: 1rem; 
+  }
+  
+  
+  .noellie-nav-link {
+    color: #6c757d !important;
+    font-weight: 500;
+    padding: 0.5rem 1rem !important;
+    text-decoration: none;
+    transition: all 0.3s ease-in-out;
+    margin-right: 0.5rem !important;
+  }
+  
+  
+  .noellie-nav-link:hover {
+    color: #212529 !important;
+  
+    border-radius: 50px;
+  }
+  
+  
+  .noellie-nav-link-active {
+    color: #212529 !important;
+    font-weight: 700 !important;
+    border-bottom: 3px solid #ffc107;
+    padding: 0.5rem 1rem !important;
+    text-decoration: none;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  
+  .noellie-phone-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-right: 2rem !important;
+  }
+  
+  .noellie-phone-btn svg {
+    color: #212529; 
+  }
