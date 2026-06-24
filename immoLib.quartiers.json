@@ -1,0 +1,56 @@
+[{
+  "_id": {
+    "$oid": "6a2d4b064cd4304cc07c2911"
+  },
+  "nom": "Akanda",
+  "ville": "Libreville",
+  "description": "Quartier résidentiel calme avec vue sur mer"
+},
+{
+  "_id": {
+    "$oid": "6a2d4b064cd4304cc07c2912"
+  },
+  "nom": "Glass",
+  "ville": "Libreville",
+  "description": "Zone historique et commerçante"
+},
+{
+  "_id": {
+    "$oid": "6a2d4b074cd4304cc07c2913"
+  },
+  "nom": "Nzeng-Ayong",
+  "ville": "Libreville",
+  "description": "Quartier dynamique et très peuplé"
+},
+{
+  "_id": {
+    "$oid": "6a2d4b074cd4304cc07c2914"
+  },
+  "nom": "Charbonnages",
+  "ville": "Libreville",
+  "description": "Zone chic et prisée"
+},
+{
+  "_id": {
+    "$oid": "6a2d4b074cd4304cc07c2915"
+  },
+  "nom": "La Sablière",
+  "ville": "Libreville",
+  "description": "Quartier résidentiel haut de gamme"
+},
+{
+  "_id": {
+    "$oid": "6a2d4b084cd4304cc07c2916"
+  },
+  "nom": "Okala",
+  "ville": "Libreville",
+  "description": "Zone en pleine expansion"
+},
+{
+  "_id": {
+    "$oid": "6a2d4b094cd4304cc07c2917"
+  },
+  "nom": "Owendo",
+  "ville": "Libreville",
+  "description": "Zone industrielle et portuaire"
+}]

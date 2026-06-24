@@ -1,0 +1,24 @@
+{
+  "type": "Compass Connections",
+  "version": {
+    "$numberInt": "1"
+  },
+  "connections": [
+    {
+      "id": "d809fed9-01bc-4ef7-ad73-eb07af25dd0a",
+      "lastUsed": {
+        "$date": {
+          "$numberLong": "1782254094516"
+        }
+      },
+      "favorite": {
+        "name": "cluster0.iylak6k.mongodb.net"
+      },
+      "savedConnectionType": "recent",
+      "connectionOptions": {
+        "connectionString": "mongodb+srv://groupe11@cluster0.iylak6k.mongodb.net/",
+        "oidc": {}
+      }
+    }
+  ]
+}

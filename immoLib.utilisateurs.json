@@ -1,0 +1,120 @@
+[{
+  "_id": {
+    "$oid": "6a2d4b024cd4304cc07c2907"
+  },
+  "nom": "AYONGA Wilda",
+  "email": "ayonga.wilda@immo.ga",
+  "telephone": "+241 06 486524 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=AYONGA+Wilda&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:18.322Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b034cd4304cc07c2908"
+  },
+  "nom": "MOUSSOUNDA Daniela",
+  "email": "moussounda.daniela@immo.ga",
+  "telephone": "+241 06 57833 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=MOUSSOUNDA+Daniela&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:19.056Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b034cd4304cc07c2909"
+  },
+  "nom": "HONDOUM Janvier",
+  "email": "hondoum.janvier@immo.ga",
+  "telephone": "+241 06 838539 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=HONDOUM+Janvier&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:19.593Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b034cd4304cc07c290a"
+  },
+  "nom": "MBA Evann",
+  "email": "mba.evann@immo.ga",
+  "telephone": "+241 06 535445 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=MBA+Evann&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:19.919Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b044cd4304cc07c290b"
+  },
+  "nom": "BIAKBA Yvette",
+  "email": "biakba.yvette@immo.ga",
+  "telephone": "+241 06 630969 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=BIAKBA+Yvette&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:20.305Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b044cd4304cc07c290c"
+  },
+  "nom": "NGUEMA Marc",
+  "email": "nguema.marc@immo.ga",
+  "telephone": "+241 06 280236 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=NGUEMA+Marc&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:20.756Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b054cd4304cc07c290d"
+  },
+  "nom": "EYEGHE Stella",
+  "email": "eyeghe.stella@immo.ga",
+  "telephone": "+241 06 371209 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=EYEGHE+Stella&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:21.338Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b054cd4304cc07c290e"
+  },
+  "nom": "OBIANG Boris",
+  "email": "obiang.boris@immo.ga",
+  "telephone": "+241 06 459754 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=OBIANG+Boris&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:21.644Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b054cd4304cc07c290f"
+  },
+  "nom": "ABESSOLO Grace",
+  "email": "abessolo.grace@immo.ga",
+  "telephone": "+241 06 365305 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=ABESSOLO+Grace&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:21.963Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2d4b064cd4304cc07c2910"
+  },
+  "nom": "MBOUMBA Franck",
+  "email": "mboumba.franck@immo.ga",
+  "telephone": "+241 06 176644 55",
+  "photo_profil": "https://ui-avatars.com/api/?name=MBOUMBA+Franck&background=random",
+  "createdAt": {
+    "$date": "2026-06-13T12:20:22.291Z"
+  }
+}]
