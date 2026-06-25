@@ -1,79 +1,81 @@
-// Nettoyage avant peuplement
+// Nettoyage de la base de données
 db.utilisateurs.drop();
 db.quartiers.drop();
 db.annonces.drop();
 
 // 1. Peuplement : Utilisateurs
-const nomsUtilisateurs = [
-    "AYONGA Wilda", "MOUSSOUNDA Daniela", "HONDOUM Janvier", "MBA Evann", 
-    "BIAKBA Yvette", "NGUEMA Marc", "EYEGHE Stella", "OBIANG Boris", 
-    "ABESSOLO Grace", "MBOUMBA Franck"
-];
+const nomsUtilisateurs = ["AYONGA Wilda", "MOUSSOUNDA Daniela", "HONDOUM Janvier", "MBA Evann", "BIAKBA Yvette", "NGUEMA Marc", "EYEGHE Stella", "OBIANG Boris", "ABESSOLO Grace", "MBOUMBA Franck"];
+const prefixes = ["066", "077", "065", "062", "074"];
 
-const utilisateurs = [];
-nomsUtilisateurs.forEach((nom) => {
-  const user = {
-    "nom": nom,
-    "email": nom.toLowerCase().replace(" ", ".") + "@immo.ga",
-    "telephone": "+241 06 " + Math.floor(Math.random() * 900000) + " 55",
-    "createdAt": new Date()
-  };
-  const result = db.utilisateurs.insertOne(user);
-  user._id = result.insertedId; 
-  utilisateurs.push(user);
-});
+db.utilisateurs.insertMany(nomsUtilisateurs.map(nom => {
+    const prefixe = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const reste = Math.floor(10000 + Math.random() * 90000);
+    
+    return {
+        nom,
+        email: nom.toLowerCase().replace(" ", ".") + "@gmail.com",
+        telephone: `+241 ${prefixe} ${reste} 55`,
+        photo_url: "https://ui-avatars.com/api/?name=" + nom.replace(" ", "+"),
+        favoris: [],
+        createdAt: new Date()
+    };
+}));
 
-// 2. Peuplement : Quartiers 
+// 2. Peuplement : Quartiers
 const quartiersData = [
-  { nom: "Akanda", desc: "Quartier résidentiel calme avec vue sur mer" },
-  { nom: "Glass", desc: "Zone historique et commerçante" },
-  { nom: "Nzeng-Ayong", desc: "Quartier dynamique et très peuplé" },
-  { nom: "Charbonnages", desc: "Zone chic et prisée" },
-  { nom: "La Sablière", desc: "Quartier résidentiel haut de gamme" },
-  { nom: "Okala", desc: "Zone en pleine expansion" },
-  { nom: "Owendo", desc: "Zone industrielle et portuaire" }
+  { nom: "Akanda", desc: "Zone résidentielle en plein essor." },
+  { nom: "Glass", desc: "Quartier animé proche du centre-ville." },
+  { nom: "Nzeng-Ayong", desc: "Quartier populaire et dynamique." },
 ];
 
-const quartiers = [];
-quartiersData.forEach((q) => {
-  const result = db.quartiers.insertOne({
-    "nom": q.nom,
-    "ville": "Libreville",
-    "description": q.desc
-  });
-
-  quartiers.push({ _id: result.insertedId, nom: q.nom, desc: q.desc });
-});
+db.quartiers.insertMany(quartiersData.map(q => ({ 
+    nom: q.nom, 
+    ville: "Libreville", 
+    description: q.desc 
+})));
 
 // 3. Peuplement : 50 Annonces
+const utilisateurs = db.utilisateurs.find().toArray();
+const quartiers = db.quartiers.find().toArray();
 const types = ["location", "vente"];
-const titres = ["Appartement spacieux", "Villa moderne", "Studio meublé", "Maison de ville", "Bureau commercial"];
+const titres = ["Appartement ", "Villa ", "Studio", "Maison", "Bureau commercial"];
 
-for (let i = 1; i <= 50; i++) {
-  const randomUser = utilisateurs[Math.floor(Math.random() * utilisateurs.length)];
-  const q = quartiers[i % quartiers.length]; // Récupère l'objet quartier avec son _id
+const annoncesData = Array.from({ length: 50 }, (_, i) => {
+  const q = quartiers[i % quartiers.length];
   const type = types[i % 2];
+  const nbrPieces = (i % 6) + 1;
   
-  const prix = type === "location" ? (150000 + (i * 5000)) : (40000000 + (i * 1000000));
-  const surface = 40 + (i * 2);
+  // Logique d'options aléatoires
+  const options = [];
+  if (i % 2 === 0) options.push("parking");
+  if (i % 5 === 0) options.push("piscine");
+  if (i % 3 === 0) options.push("climatisation");
+  if (i % 7 === 0) options.push("jardin");
 
-  db.annonces.insertOne({
-    "userId": randomUser._id,       
-    "quartierId": q._id,             
-    "titre": titres[i % titres.length] + " à " + q.nom,
-    "description": "Logement idéal situé à " + q.nom + ". " + q.desc + ". Proche de toutes commodités.",
-    "type": type,
-    "prix": prix,
-    "surface": surface,
-    "nbr_pieces": (i % 6) + 1,
-    "photos": [`https://picsum.photos/seed/${i}a/400/300`, `https://picsum.photos/seed/${i}b/400/300`],
-    "localisation": { 
-      "type": "Point", 
-      "coordinates": [9.45 + (Math.random() * 0.05), 0.39 + (Math.random() * 0.05)] 
+  return {
+    userId: utilisateurs[i % utilisateurs.length]._id,
+    quartierId: q._id,
+    titre: `${titres[i % titres.length]} à ${q.nom}`,
+    description: "Bien immobilier moderne et bien situé.",
+    type: type,
+    prix: type === "location" ? (150000 + (i * 5000)) : (40000000 + (i * 1000000)),
+    surface: 40 + (i * 2),
+    // Structure détaillée normalisée
+    details: {
+        chambres: nbrPieces,
+        salons: Math.ceil(nbrPieces / 3),
+        douches: Math.ceil(nbrPieces / 2),
+        toilettes: Math.ceil(nbrPieces / 2),
+        cuisines: 1,
+        options: options
     },
-    "disponible": true,
-    "createdAt": new Date()
-  });
-}
+    photos: [`https://picsum.photos/seed/${i}a/400/300`, `https://picsum.photos/seed/${i}b/400/300`],
+    localisation: { type: "Point", coordinates: [9.45 + (Math.random() * 0.05), 0.39 + (Math.random() * 0.05)] },
+    disponible: true,
+    createdAt: new Date()
+  };
+});
 
-print("Peuplement terminé avec succès .");
+db.annonces.insertMany(annoncesData);
+
+print("Peuplement terminé avec succès : Base de données V2 prête.");
