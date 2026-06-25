@@ -1,0 +1,41 @@
+#REQUETES AVANCEES - Explications et endpoints (backend Node.js)
+Toutes les requetes ci-dessous proviennent de ce document. Elles ont ete integrees au backend Node.js/Express (architecture MVC) sur la collection "annonces". Important : les vraies donnees du cluster utilisent "quartierId" (reference ObjectId vers la collection quartiers) et n'ont PAS de champ "prix_m2". Les requetes qui utilisaient "quartier" (texte) ou "prix_m2" ont donc ete adaptees : conversion des noms de quartier en quartierId, jointure par quartierId -> _id, et calcul du prix au m2 a la volee (prix / surface).
+
+##1) Operateur $in sur les quartiers
+Requete d'origine :
+$code db.annonces.find({ "quartier": { "$in": ["Nzeng-Ayong", "Akanda"] } })
+But : recuperer les annonces situees dans plusieurs quartiers a la fois.
+Adaptation : les noms sont d'abord convertis en quartierId, puis on filtre avec quartierId: { $in: [...] }.
+Endpoint : GET /api/annonces?quartiers=Nzeng-Ayong,Akanda
+
+##2) Photos existantes et non vides
+Requete d'origine :
+$code db.annonces.find({ "photos": { "$exists": true, "$not": { "$size": 0 } } })
+But : ne garder que les annonces qui possedent au moins une photo (le tableau existe et n'est pas vide).
+Endpoint : GET /api/annonces?avecPhotos=true
+
+##3) Tri, pagination et comptage
+Requetes d'origine :
+$code db.annonces.find().sort({ "prix": 1 }).skip(10).limit(10)
+$code db.annonces.countDocuments({ "type": "location" })
+But : trier les resultats, afficher page par page, et compter le nombre total d'annonces correspondant aux criteres.
+Parametres : tri = prix_asc | prix_desc | recent ; page (commence a 1) ; limit. Le serveur calcule skip = (page - 1) * limit. Le champ "total" de la reponse correspond a countDocuments(filtre).
+Endpoint : GET /api/annonces?tri=prix_asc&page=2&limit=10
+Reponse : { total, page, limit, annonces }
+
+##4) Pipeline d'agregation complet (prix moyen au m2 par quartier)
+Requete d'origine :
+$code db.annonces.aggregate([ { "$match": { "disponible": true, "type": "location" } }, { "$lookup": { "from": "quartiers", "localField": "quartier", "foreignField": "nom", "as": "details_quartier" } }, { "$group": { "_id": "$quartier", "prixMoyenM2": { "$avg": "$prix_m2" }, "totalAnnonces": { "$sum": 1 } } }, { "$sort": { "prixMoyenM2": -1 } } ])
+But : calculer le prix moyen au metre carre par quartier, en option pour un type ou les biens disponibles.
+Adaptation : $lookup par quartierId -> _id, et prixMoyenM2 = $avg( $divide(prix, surface) ). Le $match est optionnel.
+Endpoint : GET /api/quartiers/prix-moyen-m2?disponible=true&type=location
+
+##Recapitulatif des parametres de GET /api/annonces
+type : egalite (filtre)
+prixMin / prixMax : $gte / $lte (filtre)
+piecesMin : $gte (filtre)
+quartiers : $in par nom (operateurs tableaux)
+avecPhotos : $exists + $not $size 0 (operateurs tableaux)
+tri : sort
+page / limit : skip / limit (pagination)
+total (toujours present) : countDocuments (comptage)
