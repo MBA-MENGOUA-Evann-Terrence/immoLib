@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>immoLib - Carte des biens</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet Routing Machine (itineraire via OSRM) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: system-ui, Segoe UI, Roboto, sans-serif; }
+    #app { display: flex; flex-direction: column; height: 100%; }
+
+    header {
+      background: #0f172a; color: #fff; padding: 12px 16px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    header h1 { font-size: 18px; font-weight: 600; }
+    header .controls { display: flex; gap: 8px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+    header select, header button {
+      padding: 6px 10px; border-radius: 8px; border: 1px solid #334155;
+      background: #1e293b; color: #fff; font-size: 14px; cursor: pointer;
+    }
+    header button:hover { background: #334155; }
+    header .badge { font-size: 13px; color: #94a3b8; }
+
+    #map { flex: 1; }
+
+    .popup-card { width: 220px; }
+    .popup-card img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; }
+    .popup-card h3 { font-size: 15px; margin: 8px 0 4px; }
+    .popup-card .prix { font-weight: 700; color: #0f766e; }
+    .popup-card .meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .popup-card .tag {
+      display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px;
+      color: #fff; margin-top: 6px;
+    }
+    .tag.location { background: #2563eb; }
+    .tag.vente { background: #db2777; }
+    .popup-card button {
+      margin-top: 8px; width: 100%; padding: 7px; border: 0; border-radius: 8px;
+      background: #0f172a; color: #fff; cursor: pointer; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>immoLib - Carte des biens</h1>
+      <span class="badge" id="status">Localisation en cours...</span>
+      <div class="controls">
+        <select id="filtreType">
+          <option value="">Tous les types</option>
+          <option value="location">Location</option>
+          <option value="vente">Vente</option>
+        </select>
+        <select id="rayon">
+          <option value="5">5 km</option>
+          <option value="10">10 km</option>
+          <option value="15" selected>15 km</option>
+          <option value="50">50 km</option>
+        </select>
+        <button id="recharger">Recharger</button>
+        <button id="effacerRoute">Effacer l'itineraire</button>
+      </div>
+    </header>
+    <div id="map"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+  <script>
+    const API = "http://localhost:3000/api/annonces/carte";
+    const LIBREVILLE = [0.4162, 9.4673]; // [lat, lng] - centre par defaut
+
+    // 1) Carte
+    const map = L.map("map").setView(LIBREVILLE, 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap",
+    }).addTo(map);
+
+    // Icones de couleur selon le type
+    function icone(couleur) {
+      return L.divIcon({
+        className: "",
+        html: `<div style="background:${couleur};width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.4)"></div>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      });
+    }
+    const ICONES = { location: icone("#2563eb"), vente: icone("#db2777") };
+
+    let positionUtilisateur = null;     // [lat, lng]
+    let coucheBiens = null;             // L.geoJSON
+    let controleRoute = null;           // Leaflet Routing Machine
+    const statusEl = document.getElementById("status");
+
+    // 2) Geolocalisation du navigateur
+    function localiser() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) { resolve(null); return; }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve([pos.coords.latitude, pos.coords.longitude]),
+          () => resolve(null),
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      });
+    }
+
+    // 3) Itineraire "ma position -> le bien" (OSRM via Routing Machine)
+    function tracerItineraire(arriveeLatLng) {
+      if (!positionUtilisateur) {
+        alert("Position inconnue : autorise la geolocalisation pour calculer l'itineraire.");
+        return;
+      }
+      if (controleRoute) map.removeControl(controleRoute);
+      controleRoute = L.Routing.control({
+        waypoints: [L.latLng(positionUtilisateur), L.latLng(arriveeLatLng)],
+        lineOptions: { styles: [{ color: "#0f172a", weight: 5, opacity: 0.8 }] },
+        addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: true,
+        show: true,
+      }).addTo(map);
+    }
+    window.tracerItineraire = tracerItineraire; // accessible depuis le bouton du popup
+
+    // 4) Construire le contenu d'un popup
+    function popupHTML(p, latlng) {
+      const photo = p.photo ? `<img src="${p.photo}" alt="">` : "";
+      const dist = p.distanceM != null ? `${(p.distanceM / 1000).toFixed(2)} km` : "";
+      const prix = Number(p.prix).toLocaleString("fr-FR") + " FCFA";
+      return `
+        <div class="popup-card">
+          ${photo}
+          <h3>${p.titre}</h3>
+          <div class="prix">${prix}</div>
+          <div class="meta">${p.quartier ?? ""} ${dist ? "- " + dist : ""}</div>
+          <span class="tag ${p.type}">${p.type}</span>
+          <button onclick="tracerItineraire([${latlng[0]}, ${latlng[1]}])">Itineraire depuis ma position</button>
+        </div>`;
+    }
+
+    // 5) Charger les biens depuis l'API et les afficher
+    async function chargerBiens() {
+      const type = document.getElementById("filtreType").value;
+      const rayon = document.getElementById("rayon").value;
+
+      let url = API + `?rayon=${rayon}`;
+      if (positionUtilisateur) url += `&lat=${positionUtilisateur[0]}&lng=${positionUtilisateur[1]}`;
+      if (type) url += `&type=${type}`;
+
+      statusEl.textContent = "Chargement des biens...";
+      const geojson = await fetch(url).then((r) => r.json());
+
+      if (coucheBiens) map.removeLayer(coucheBiens);
+      coucheBiens = L.geoJSON(geojson, {
+        pointToLayer: (f, latlng) => L.marker(latlng, { icon: ICONES[f.properties.type] || ICONES.vente }),
+        onEachFeature: (f, layer) => {
+          const c = f.geometry.coordinates; // [lng, lat]
+          layer.bindPopup(popupHTML(f.properties, [c[1], c[0]]));
+        },
+      }).addTo(map);
+
+      const n = geojson.features.length;
+      statusEl.textContent = `${n} bien(s) affiche(s)`;
+      if (n > 0) map.fitBounds(coucheBiens.getBounds(), { padding: [40, 40] });
+    }
+
+    // 6) Demarrage
+    (async function init() {
+      positionUtilisateur = await localiser();
+      if (positionUtilisateur) {
+        statusEl.textContent = "Position trouvee";
+        L.marker(positionUtilisateur, { icon: icone("#16a34a") })
+          .addTo(map).bindPopup("<b>Vous etes ici</b>").openPopup();
+        map.setView(positionUtilisateur, 13);
+      } else {
+        statusEl.textContent = "Position refusee - centre sur Libreville";
+      }
+      await chargerBiens();
+    })();
+
+    document.getElementById("recharger").addEventListener("click", chargerBiens);
+    document.getElementById("filtreType").addEventListener("change", chargerBiens);
+    document.getElementById("rayon").addEventListener("change", chargerBiens);
+    document.getElementById("effacerRoute").addEventListener("click", () => {
+      if (controleRoute) { map.removeControl(controleRoute); controleRoute = null; }
+    });
+  </script>
+</body>
+</html>
