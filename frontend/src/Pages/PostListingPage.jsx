@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../Components/PageLayout';
 import { useListings } from '../context/ListingsContext';
+import { useAuth } from '../context/AuthContext';
 import { LOCATIONS, PROPERTY_TYPES } from '../data/listings';
 
 const inputClass =
@@ -32,21 +33,51 @@ const INITIAL_FORM = {
 export default function PostListingPage() {
   const navigate = useNavigate();
   const { addListing } = useListings();
+  const { isAuthenticated } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newListing = addListing(form);
-    setSubmitted(true);
-    setTimeout(() => {
-      navigate(`/annonces/${newListing.id}`);
-    }, 1500);
+    setError(null);
+    setSubmitting(true);
+    try {
+      const newListing = await addListing(form);
+      setSubmitted(true);
+      setTimeout(() => {
+        navigate(`/annonces/${newListing.id}`);
+      }, 1500);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <PageLayout>
+        <div className="max-w-lg mx-auto text-center py-20">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Connexion requise</h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Vous devez être connecté pour publier une annonce.
+          </p>
+          <Link
+            to="/connexion"
+            className="inline-block px-6 py-3 bg-immo-green text-white text-sm font-semibold rounded-xl hover:bg-immo-green-dark transition-colors"
+          >
+            Se connecter
+          </Link>
+        </div>
+      </PageLayout>
+    );
+  }
 
   if (submitted) {
     return (
@@ -73,6 +104,12 @@ export default function PostListingPage() {
             Remplissez le formulaire ci-dessous pour publier votre bien sur ImmoLib.
           </p>
         </div>
+
+        {error && (
+          <p className="mb-6 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            {error}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="bg-immo-beige rounded-2xl p-6 sm:p-8 space-y-5">
@@ -318,9 +355,10 @@ export default function PostListingPage() {
             </button>
             <button
               type="submit"
-              className="px-8 py-3 bg-immo-orange text-white text-sm font-semibold rounded-xl hover:bg-immo-orange-dark transition-colors"
+              disabled={submitting}
+              className="px-8 py-3 bg-immo-orange text-white text-sm font-semibold rounded-xl hover:bg-immo-orange-dark transition-colors disabled:opacity-60"
             >
-              Publier l&apos;annonce
+              {submitting ? 'Publication...' : "Publier l'annonce"}
             </button>
           </div>
         </form>

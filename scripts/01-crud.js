@@ -1,40 +1,35 @@
-// 1. CREATE : Insertion de documents
-db.annonces.insertOne({
-    titre: "Appartement de luxe",
-    prix: 50000000,
-    details: { chambres: 3, salons: 1, douches: 2, toilettes: 2, cuisines: 1, options: ["parking"] },
-    disponible: true
-});
+// --- 1. Opérations CRUD ---
 
-db.annonces.insertMany([
-    { titre: "Villa", prix: 80000000, details: { chambres: 5, salons: 2, douches: 4, toilettes: 4, cuisines: 1, options: ["piscine", "jardin"] }, disponible: true },
-    { titre: "Studio", prix: 150000, details: { chambres: 1, salons: 1, douches: 1, toilettes: 1, cuisines: 1, options: [] }, disponible: true }
-]);
-
-
-// 2. READ : Filtres et Projections
-// On cherche les annonces avec au moins 3 chambres et on n'affiche que le titre et le prix
-db.annonces.find(
-    { "details.chambres": { $gte: 3 } },
-    { projection: { titre: 1, prix: 1, _id: 0 } }
-);
-
-// 3. UPDATE : Modifications variées
-// $set : Mise à jour standard
-db.annonces.updateOne({ titre: "Studio" }, { $set: { disponible: false } });
-
-// $inc : Augmentation numérique (ex: augmentation du prix)
-db.annonces.updateOne({ titre: "Studio" }, { $inc: { prix: 5000 } });
-
-// $push : Ajouter un élément au tableau options
-db.annonces.updateOne({ titre: "Studio" }, { $push: { "details.options": "wifi" } });
-
-// $pull : Retirer un élément du tableau options
-db.annonces.updateOne({ titre: "Studio" }, { $pull: { "details.options": "wifi" } });
-
-// updateMany : Modification de plusieurs documents
-db.annonces.updateMany({ "details.chambres": { $lt: 2 } }, { $set: { disponible: false } });
-
-// 4. DELETE : Suppressions
-db.annonces.deleteOne({ titre: "Appartement de luxe" });
-db.annonces.deleteMany({ disponible: false });
+// Insérer un utilisateur (Collection: utilisateurs)
+db.utilisateurs.insertOne({
+    nom: "Jean Dupont",
+    email: "jean.dupont@email.com",
+    telephone: "066000000",
+    createdAt: new Date(),
+    etat: 1
+  });
+  
+  // Récupérer l'ID de l'utilisateur et du quartier
+  var uId = db.utilisateurs.findOne({ nom: "Jean Dupont" })._id;
+  db.quartiers.insertOne({ nom: "Akanda", ville: "Libreville", description: "Zone résidentielle" });
+  var qId = db.quartiers.findOne({ nom: "Akanda" })._id;
+  
+  // Insérer une annonce
+  db.annonces.insertMany([{
+    titre: "Villa Moderne", description: "Superbe villa", prix: 500000, surface: 200, 
+    nbr_pieces: 5, type: "location", disponible: true, supprime: false, 
+    localisation: { type: "Point", coordinates: [9.45, 0.39] },
+    userId: uId, quartierId: qId, createdAt: new Date(), photos: ["photo1.jpg"]
+  }]);
+  
+  // Update : $set modifie une valeur
+  db.annonces.updateOne({ titre: "Villa Moderne" }, { $set: { prix: 550000 } });
+  // Update : $push ajoute dans un tableau
+  db.annonces.updateOne({ titre: "Villa Moderne" }, { $push: { photos: "photo2.jpg" } });
+  // Update : $pull retire d'un tableau
+  db.annonces.updateOne({ titre: "Villa Moderne" }, { $pull: { photos: "photo1.jpg" } });
+  // Update : $inc incrémente une valeur numérique
+  db.annonces.updateMany({ type: "location" }, { $inc: { prix: 10000 } });
+  
+  // Delete
+  db.annonces.deleteOne({ titre: "Villa Moderne" });

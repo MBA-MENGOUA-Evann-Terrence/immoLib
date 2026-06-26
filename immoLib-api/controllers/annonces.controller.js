@@ -2,6 +2,8 @@
 // Recoit les requetes HTTP, appelle le model, renvoie le JSON.
 const { ObjectId } = require("mongodb");
 const Annonce = require("../models/annonce.model");
+const Utilisateur = require("../models/utilisateur.model");
+const Message = require("../models/message.model");
 
 // GET /api/annonces?type=&prixMin=&prixMax=&piecesMin=&quartiers=&avecPhotos=&tri=&page=&limit=
 async function getAnnonces(req, res) {
@@ -48,9 +50,59 @@ async function getAnnonceParId(req, res) {
   try {
     const annonce = await Annonce.parId(req.params.id);
     if (!annonce) return res.status(404).json({ erreur: "Annonce introuvable." });
-    res.json(annonce);
+
+    let auteur = null;
+    if (annonce.userId) {
+      const utilisateur = await Utilisateur.trouverParId(annonce.userId);
+      if (utilisateur) {
+        auteur = {
+          _id: utilisateur._id,
+          nom: utilisateur.nom,
+          email: utilisateur.email,
+          telephone: utilisateur.telephone ?? null,
+          photo_profil: utilisateur.photo_profil ?? null,
+        };
+      }
+    }
+
+    res.json({ ...annonce, auteur });
   } catch (err) {
     res.status(400).json({ erreur: "Identifiant invalide." });
+  }
+}
+
+// POST /api/annonces/:id/contact
+async function contacterAnnonce(req, res) {
+  try {
+    const { nom, email, telephone, message } = req.body;
+
+    if (!nom || !email || !message) {
+      return res.status(400).json({ erreur: "Champs requis: nom, email, message." });
+    }
+
+    const annonce = await Annonce.parId(req.params.id);
+    if (!annonce) return res.status(404).json({ erreur: "Annonce introuvable." });
+    if (!annonce.userId) {
+      return res.status(400).json({ erreur: "Cette annonce n'a pas de proprietaire associe." });
+    }
+
+    const doc = {
+      annonceId: new ObjectId(req.params.id),
+      destinataireId: new ObjectId(annonce.userId),
+      expediteur: {
+        nom: String(nom).trim(),
+        email: String(email).trim(),
+        telephone: telephone ? String(telephone).trim() : null,
+      },
+      message: String(message).trim(),
+      lu: false,
+      createdAt: new Date(),
+    };
+
+    await Message.creer(doc);
+    res.status(201).json({ message: "Votre message a ete envoye au proprietaire." });
+  } catch (err) {
+    res.status(400).json({ erreur: err.message });
   }
 }
 
@@ -196,6 +248,7 @@ module.exports = {
   annoncesProches,
   getCarte,
   getAnnonceParId,
+  contacterAnnonce,
   creerAnnonce,
   getAnnoncesUtilisateur,
   updateAnnonce,

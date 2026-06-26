@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+import { faMagnifyingGlass, faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
+import { useSearchResults } from '../context/SearchResultsContext';
+import { mapTransactionToApiType } from '../mappers/annonce.mapper';
+import { getCurrentPosition } from '../utils/geolocation';
 
 const LOCATIONS = [
   'Akanda',
@@ -20,10 +23,16 @@ const PROPERTY_TYPES = [
   'Commerce',
 ];
 
+const RAYONS = [5, 10, 15, 25];
+
 const fieldClass =
   'w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-immo-green/30 focus:border-immo-green placeholder:text-gray-400';
 
 const labelClass = 'block text-xs font-medium text-gray-500 mb-1.5';
+
+function scrollToResults() {
+  document.getElementById('resultats')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 function TransactionToggle({ value, onChange }) {
   return (
@@ -47,14 +56,57 @@ function TransactionToggle({ value, onChange }) {
 }
 
 export default function SearchBar() {
+  const { applyFilters, setFilters, enableGeoSearch, setViewMode } = useSearchResults();
   const [transaction, setTransaction] = useState('Vente');
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [budget, setBudget] = useState('');
+  const [rayon, setRayon] = useState(10);
+  const [searching, setSearching] = useState(false);
+  const [geoError, setGeoError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSearching(true);
+    setGeoError(null);
+    try {
+      const payload = {
+        q: query.trim(),
+        quartier: location,
+        propertyType,
+        transaction,
+        rayon,
+        prixMax: budget ? Number(budget) : undefined,
+      };
+      setFilters((prev) => ({ ...prev, ...payload }));
+      await applyFilters(payload);
+      scrollToResults();
+    } catch {
+      // géré dans le contexte
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleNearbySearch = async () => {
+    setSearching(true);
+    setGeoError(null);
+    try {
+      const pos = await getCurrentPosition();
+      if (!pos) {
+        setGeoError('Autorisez la géolocalisation pour chercher près de vous.');
+        return;
+      }
+      setFilters((prev) => ({ ...prev, rayon }));
+      await enableGeoSearch();
+      setViewMode('map');
+      scrollToResults();
+    } catch {
+      // géré dans le contexte
+    } finally {
+      setSearching(false);
+    }
   };
 
   return (
@@ -85,7 +137,7 @@ export default function SearchBar() {
 
           <div className="lg:col-span-2">
             <label htmlFor="search-location" className={labelClass}>
-              Localisation
+              Quartier
             </label>
             <select
               id="search-location"
@@ -93,7 +145,7 @@ export default function SearchBar() {
               onChange={(e) => setLocation(e.target.value)}
               className={`${fieldClass} appearance-none cursor-pointer`}
             >
-              <option value="">Toutes les villes</option>
+              <option value="">Tous les quartiers</option>
               {LOCATIONS.map((city) => (
                 <option key={city} value={city}>
                   {city}
@@ -123,7 +175,7 @@ export default function SearchBar() {
 
           <div className="lg:col-span-2">
             <label htmlFor="search-budget" className={labelClass}>
-              Budget (FCFA)
+              Budget max (FCFA)
             </label>
             <input
               id="search-budget"
@@ -139,13 +191,46 @@ export default function SearchBar() {
           <div className="lg:col-span-1">
             <button
               type="submit"
+              disabled={searching}
               aria-label="Rechercher"
-              className="w-full h-[42px] flex items-center justify-center bg-immo-orange text-white rounded-xl hover:bg-immo-orange-dark transition-colors"
+              className="w-full h-[42px] flex items-center justify-center bg-immo-orange text-white rounded-xl hover:bg-immo-orange-dark transition-colors disabled:opacity-60"
             >
               <FontAwesomeIcon icon={faMagnifyingGlass} className="text-base" />
             </button>
           </div>
         </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-end gap-3">
+          <div className="w-full sm:w-auto sm:min-w-[140px]">
+            <label htmlFor="search-rayon" className={labelClass}>
+              Rayon (km)
+            </label>
+            <select
+              id="search-rayon"
+              value={rayon}
+              onChange={(e) => setRayon(Number(e.target.value))}
+              className={`${fieldClass} appearance-none cursor-pointer`}
+            >
+              {RAYONS.map((r) => (
+                <option key={r} value={r}>{r} km</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleNearbySearch}
+            disabled={searching}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-immo-green text-white rounded-xl hover:bg-immo-green-dark transition-colors disabled:opacity-60"
+          >
+            <FontAwesomeIcon icon={faLocationCrosshairs} />
+            Près de moi
+          </button>
+        </div>
+
+        {geoError && (
+          <p className="mt-3 text-xs text-red-600">{geoError}</p>
+        )}
       </form>
     </div>
   );

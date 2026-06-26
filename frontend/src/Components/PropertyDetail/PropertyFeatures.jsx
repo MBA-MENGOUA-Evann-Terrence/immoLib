@@ -3,10 +3,12 @@ import { faBed, faBath, faRulerCombined } from '@fortawesome/free-solid-svg-icon
 
 export default function PropertyFeatures({ beds, baths, sqft }) {
   const features = [
-    { icon: faBed, label: `${beds} Ch.` },
-    { icon: faBath, label: `${baths} Sdb.` },
-    { icon: faRulerCombined, label: `${sqft} m²` },
-  ];
+    beds != null ? { icon: faBed, label: `${beds} pièce${beds > 1 ? 's' : ''}` } : null,
+    baths != null ? { icon: faBath, label: `${baths} sdb.` } : null,
+    sqft != null ? { icon: faRulerCombined, label: `${sqft} m²` } : null,
+  ].filter(Boolean);
+
+  if (features.length === 0) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-6 py-5 border-y border-gray-100">

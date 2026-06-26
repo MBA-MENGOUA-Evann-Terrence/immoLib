@@ -2,11 +2,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTag } from '@fortawesome/free-solid-svg-icons';
 
 export default function PropertyPriceBlock({ listing }) {
-  const label = listing.transaction === 'Vente' ? 'À vendre' : 'À louer';
-  const subLabel =
+  if (listing.price == null) return null;
+
+  const label =
     listing.transaction === 'Vente'
-      ? `Acompte ${listing.downPayment}`
-      : `Caution ${listing.downPayment}`;
+      ? 'À vendre'
+      : listing.transaction === 'Location'
+        ? 'À louer'
+        : null;
 
   return (
     <div className="flex items-start gap-4">
@@ -14,9 +17,8 @@ export default function PropertyPriceBlock({ listing }) {
         <FontAwesomeIcon icon={faTag} className="text-immo-green" />
       </div>
       <div>
-        <p className="text-sm text-gray-500">{label}</p>
+        {label && <p className="text-sm text-gray-500">{label}</p>}
         <p className="text-2xl sm:text-3xl font-bold text-gray-900">{listing.price}</p>
-        <p className="text-sm text-gray-500 mt-1">{subLabel}</p>
       </div>
     </div>
   );

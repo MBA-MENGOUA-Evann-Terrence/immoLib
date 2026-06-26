@@ -15,6 +15,7 @@ router.get("/:id", ctrl.getAnnonceParId);       // detail (findOne)
 
 // Routes protegees par JWT (il faut un token valide)
 router.post("/", authentifier, ctrl.creerAnnonce);                    // CREATE
+router.post("/:id/contact", ctrl.contacterAnnonce);                     // message au proprietaire
 router.put("/:id/restaurer", authentifier, ctrl.restaurerAnnonce);    // RESTORE (avant /:id)
 router.put("/:id", authentifier, ctrl.updateAnnonce);                 // UPDATE
 router.delete("/:id", authentifier, ctrl.deleteAnnonce);              // DELETE (soft)

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import NavBar from '../Components/NavBar';
 import Footer from '../Components/Footer';
@@ -13,12 +14,50 @@ import { useListings } from '../context/ListingsContext';
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
-  const { getListingById } = useListings();
-  const listing = getListingById(id);
+  const { fetchListingById } = useListings();
+  const [listing, setListing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  if (!listing) {
-    return <Navigate to="/annonces" replace />;
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+
+    fetchListingById(id)
+      .then((result) => {
+        if (!cancelled) {
+          setListing(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setNotFound(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, fetchListingById]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <NavBar />
+        <main className="pt-16 lg:pt-[72px] flex items-center justify-center min-h-[50vh]">
+          <p className="text-sm text-gray-500">Chargement de l&apos;annonce...</p>
+        </main>
+      </div>
+    );
   }
+
+  if (notFound || !listing) {
+    return <Navigate to="/" replace />;
+  }
+
+  const hasSidebar = Boolean(listing.publisher);
 
   return (
     <div className="min-h-screen bg-white">
@@ -32,7 +71,11 @@ export default function PropertyDetailPage() {
             <PropertyGallery images={listing.images} title={listing.title} />
           </div>
 
-          <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 lg:gap-12">
+          <div
+            className={`mt-10 grid grid-cols-1 gap-8 lg:gap-12 ${
+              hasSidebar ? 'lg:grid-cols-[1fr_360px]' : ''
+            }`}
+          >
             <div className="space-y-10 min-w-0">
               <PropertyPriceBlock listing={listing} />
               <PropertyFeatures
@@ -41,11 +84,15 @@ export default function PropertyDetailPage() {
                 sqft={listing.sqft}
               />
               <PropertyOverview description={listing.description} />
-              <PropertyHighlights highlights={listing.highlights} />
-              <PropertyLocation address={listing.address} />
+              <PropertyHighlights specs={listing.specs} />
+              <PropertyLocation
+                address={listing.address || listing.quartier}
+                coordinates={listing.coordinates}
+                title={listing.title}
+              />
             </div>
 
-            <PropertySidebar listing={listing} />
+            {hasSidebar && <PropertySidebar listing={listing} />}
           </div>
         </div>
 

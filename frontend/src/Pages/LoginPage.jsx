@@ -1,20 +1,35 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { FaGoogle, FaFacebookF } from 'react-icons/fa6';
 import AuthHero from '../Components/AuthHero';
+import { useAuth } from '../context/AuthContext';
 
 const inputClass =
   'w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-immo-green/30 focus:border-immo-green placeholder:text-gray-400';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, loading, error } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [formError, setFormError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError(null);
+    try {
+      await login({ email, password });
+      navigate('/');
+    } catch (err) {
+      setFormError(err.message);
+    }
   };
+
+  const displayError = formError || error;
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
@@ -42,6 +57,12 @@ export default function LoginPage() {
               Connectez-vous à votre compte
             </p>
 
+            {displayError && (
+              <p className="mt-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                {displayError}
+              </p>
+            )}
+
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               <div>
                 <label htmlFor="email" className="block text-sm text-gray-600 mb-2">
@@ -50,6 +71,8 @@ export default function LoginPage() {
                 <input
                   id="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="exemple@email.com"
                   className={inputClass}
                   required
@@ -64,6 +87,8 @@ export default function LoginPage() {
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className={`${inputClass} pr-12`}
                     required
@@ -96,9 +121,10 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors"
+                disabled={loading}
+                className="w-full py-3.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60"
               >
-                Connexion
+                {loading ? 'Connexion...' : 'Connexion'}
               </button>
             </form>
 
