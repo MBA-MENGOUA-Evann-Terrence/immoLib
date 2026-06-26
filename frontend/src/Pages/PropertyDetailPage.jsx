@@ -11,10 +11,12 @@ import PropertyHighlights from '../Components/PropertyDetail/PropertyHighlights'
 import PropertyLocation from '../Components/PropertyDetail/PropertyLocation';
 import PropertySidebar from '../Components/PropertyDetail/PropertySidebar';
 import { useListings } from '../context/ListingsContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const { fetchListingById } = useListings();
+  const { isAuthenticated } = useAuth();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -41,6 +43,11 @@ export default function PropertyDetailPage() {
       cancelled = true;
     };
   }, [id, fetchListingById]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchListingById(id).then(setListing).catch(() => {});
+  }, [isAuthenticated, id, fetchListingById]);
 
   if (loading) {
     return (

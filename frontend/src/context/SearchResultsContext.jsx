@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
-import { useListings } from './ListingsContext';import { mapTransactionToApiType } from '../mappers/annonce.mapper';
+import { useListings } from './ListingsContext';
+import { mapTransactionToApiType } from '../mappers/annonce.mapper';
 import { getCurrentPosition, LIBREVILLE_CENTER } from '../utils/geolocation';
 
 const SearchResultsContext = createContext(null);
@@ -26,10 +27,7 @@ function prixRangeToApi(range) {
   }
 }
 
-/**
- * Filtre client les annonces mappées (type de bien, quartier texte).
- */
-function filterListingsClient(listings, filters) {
+function filterListingsClient(listings, filters, sortByDistance = false) {
   let result = listings;
 
   if (filters.propertyType) {
@@ -55,20 +53,33 @@ function filterListingsClient(listings, filters) {
     result = result.filter((l) => l.transaction === filters.transaction);
   }
 
+  if (sortByDistance) {
+    const maxM = filters.rayon * 1000;
+    result = result.filter(
+      (l) => l.distanceM == null || l.distanceM <= maxM
+    );
+    result = [...result].sort(
+      (a, b) => (a.distanceM ?? Infinity) - (b.distanceM ?? Infinity)
+    );
+  }
+
   return result;
 }
 
 export function SearchResultsProvider({ children }) {
   const { listings, loading, error, geoMeta, search, searchNearby, fetchListings } = useListings();
 
-  const [viewMode, setViewModeState] = useState('list');  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [viewMode, setViewModeState] = useState('list');
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [activeListingId, setActiveListingId] = useState(null);
   const [geoCenter, setGeoCenter] = useState(null);
+  const [userPosition, setUserPosition] = useState(null);
   const [useGeoRadius, setUseGeoRadius] = useState(false);
 
   const setViewMode = useCallback((mode) => {
     setViewModeState(mode === 'map' ? 'map' : 'list');
   }, []);
+
   const updateFilter = useCallback((key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
@@ -77,22 +88,25 @@ export function SearchResultsProvider({ children }) {
     setFilters(DEFAULT_FILTERS);
     setUseGeoRadius(false);
     setGeoCenter(null);
+    setUserPosition(null);
     fetchListings();
   }, [fetchListings]);
 
-  /**
-   * Applique les filtres via l'API (liste + carte synchronisées).
-   */
   const applyFilters = useCallback(async (overrides = {}) => {
     const merged = { ...filters, ...overrides };
     const prix = merged.prixMax
       ? { prixMax: merged.prixMax }
-      : prixRangeToApi(merged.prixRange);    const apiType = mapTransactionToApiType(merged.transaction);
+      : prixRangeToApi(merged.prixRange);
+    const apiType = mapTransactionToApiType(merged.transaction);
 
-    if (useGeoRadius && geoCenter) {
+    if (useGeoRadius) {
+      const center = userPosition ?? geoCenter ?? (await getCurrentPosition()) ?? LIBREVILLE_CENTER;
+      setUserPosition(center);
+      setGeoCenter(center);
+      setUseGeoRadius(true);
       await searchNearby({
-        lng: geoCenter.lng,
-        lat: geoCenter.lat,
+        lng: center.lng,
+        lat: center.lat,
         rayon: merged.rayon,
       });
       return;
@@ -105,25 +119,40 @@ export function SearchResultsProvider({ children }) {
       propertyType: merged.propertyType || undefined,
       ...prix,
     });
-  }, [filters, useGeoRadius, geoCenter, search, searchNearby]);
+  }, [filters, useGeoRadius, geoCenter, userPosition, search, searchNearby]);
 
   const enableGeoSearch = useCallback(async () => {
     const pos = (await getCurrentPosition()) ?? LIBREVILLE_CENTER;
-    setGeoCenter(LIBREVILLE_CENTER);
+    setUserPosition(pos);
+    setGeoCenter(pos);
     setUseGeoRadius(true);
     await searchNearby({ lng: pos.lng, lat: pos.lat, rayon: filters.rayon });
   }, [filters.rayon, searchNearby]);
-  const filteredListings = useMemo(
-    () => filterListingsClient(listings, filters),
-    [listings, filters]
+
+  const searchNearbyFromCenter = useCallback(
+    async (rayon) => {
+      const center = userPosition ?? geoCenter;
+      if (!center) return;
+      await searchNearby({ lng: center.lng, lat: center.lat, rayon });
+    },
+    [userPosition, geoCenter, searchNearby]
   );
 
-  const mapCenter = LIBREVILLE_CENTER;
-  const rayonKm = geoMeta?.rayonKm ?? filters.rayon;
+  const filteredListings = useMemo(
+    () => filterListingsClient(listings, filters, useGeoRadius),
+    [listings, filters, useGeoRadius]
+  );
+
+  const mapCenter = useGeoRadius && (userPosition ?? geoCenter)
+    ? (userPosition ?? geoCenter)
+    : LIBREVILLE_CENTER;
+  const rayonKm = useGeoRadius ? (geoMeta?.rayonKm ?? filters.rayon) : filters.rayon;
 
   useEffect(() => {
     if (geoMeta?.mode === 'nearby') {
-      setGeoCenter({ lat: geoMeta.lat, lng: geoMeta.lng });
+      const center = { lat: geoMeta.lat, lng: geoMeta.lng };
+      setGeoCenter(center);
+      setUserPosition((prev) => prev ?? center);
       setUseGeoRadius(true);
     }
   }, [geoMeta]);
@@ -141,10 +170,12 @@ export function SearchResultsProvider({ children }) {
       setActiveListingId,
       filteredListings,
       geoCenter: mapCenter,
+      userPosition: useGeoRadius ? userPosition : null,
       rayonKm,
       useGeoRadius,
       setUseGeoRadius,
       enableGeoSearch,
+      searchNearbyFromCenter,
       loading,
       error,
     }),
@@ -158,9 +189,11 @@ export function SearchResultsProvider({ children }) {
       activeListingId,
       filteredListings,
       mapCenter,
+      userPosition,
       rayonKm,
       useGeoRadius,
       enableGeoSearch,
+      searchNearbyFromCenter,
       loading,
       error,
     ]

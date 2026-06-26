@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import SearchFiltersBar from './SearchFiltersBar';
+import PrixMoyenM2ParQuartier from './PrixMoyenM2ParQuartier';
 import PropertyCardCompact from './PropertyCardCompact';
 import ListingsListPanel from './ListingsListPanel';
 import SearchResultsMap from './SearchResultsMap';
 import { useSearchResults } from '../../context/SearchResultsContext';
 
 export default function HomeListingsSection() {
+  const [showPrixMoyen, setShowPrixMoyen] = useState(false);
+
   const {
     viewMode,
     filteredListings,
@@ -16,13 +20,19 @@ export default function HomeListingsSection() {
   } = useSearchResults();
 
   const emptyMessage = useGeoRadius
-    ? `Aucune annonce dans un rayon de ${rayonKm} km autour de Libreville.`
+    ? `Aucune annonce dans un rayon de ${rayonKm} km autour de votre position.`
     : 'Aucune annonce ne correspond à vos critères.';
 
   return (
     <section id="resultats" className="mt-8 lg:mt-10 scroll-mt-24">
       <div className="rounded-[28px] lg:rounded-[32px] bg-gray-50 border border-gray-100 overflow-hidden">
-        <SearchFiltersBar embedded resultCount={filteredListings.length} />
+        <SearchFiltersBar
+          embedded
+          resultCount={filteredListings.length}
+          showPrixMoyen={showPrixMoyen}
+          onTogglePrixMoyen={() => setShowPrixMoyen((v) => !v)}
+        />
+        {showPrixMoyen && <PrixMoyenM2ParQuartier />}
 
         {error && (
           <div className="px-4 sm:px-6 pt-4">

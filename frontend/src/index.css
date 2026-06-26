@@ -19,19 +19,31 @@
   border: none !important;
 }
 
+.user-position-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+@keyframes ping {
+  0% { transform: scale(1); opacity: 0.35; }
+  70% { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
 /* Popups carte compactes */
 .leaflet-popup.map-popup-compact .leaflet-popup-content-wrapper {
-  padding: 6px;
-  border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .leaflet-popup.map-popup-compact .leaflet-popup-content {
   margin: 0;
-  line-height: 1.3;
+  width: 112px !important;
+  line-height: 1.2;
 }
 
 .leaflet-popup.map-popup-compact .leaflet-popup-tip {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }

@@ -10,7 +10,7 @@ export default function AuthHero() {
           alt=""
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-immo-green/80 via-immo-green-dark/70 to-immo-green/60" />
       </div>
 
       <Link to="/" className="relative z-10 text-2xl font-bold text-white tracking-tight">
@@ -28,9 +28,9 @@ export default function AuthHero() {
       </div>
 
       <div className="relative z-10 flex items-center gap-2">
-        <span className="w-8 h-1 rounded-full bg-white" />
-        <span className="w-2 h-2 rounded-full bg-white/40" />
-        <span className="w-2 h-2 rounded-full bg-white/40" />
+        <span className="w-8 h-1 rounded-full bg-immo-orange" />
+        <span className="w-2 h-2 rounded-full bg-white/50" />
+        <span className="w-2 h-2 rounded-full bg-white/50" />
       </div>
     </div>
   );

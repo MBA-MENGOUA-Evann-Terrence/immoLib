@@ -1,8 +1,13 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass, faChevronDown, faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
+import {
+  faMagnifyingGlass,
+  faChevronDown,
+  faLocationCrosshairs,
+  faRotateLeft,
+  faChartColumn,
+} from '@fortawesome/free-solid-svg-icons';
 import { useSearchResults } from '../../context/SearchResultsContext';
 import ViewModeToggle from './ViewModeToggle';
-
 const QUARTIERS = ['Akanda', 'Glass', 'Nzeng-Ayong', 'Libreville', 'Owendo', 'Ntoum'];
 const PROPERTY_TYPES = ['Appartement', 'Maison', 'Villa', 'Terrain', 'Bureau', 'Commerce'];
 const PRIX_RANGES = [
@@ -34,13 +39,21 @@ function FilterSelect({ label, value, onChange, options }) {
   );
 }
 
-export default function SearchFiltersBar({ resultCount = 0, embedded = false }) {
+export default function SearchFiltersBar({
+  resultCount = 0,
+  embedded = false,
+  showPrixMoyen = false,
+  onTogglePrixMoyen,
+}) {
   const {
     filters,
     updateFilter,
     applyFilters,
+    resetFilters,
     enableGeoSearch,
     useGeoRadius,
+    geoCenter,
+    searchNearbyFromCenter,
     loading,
   } = useSearchResults();
 
@@ -106,6 +119,16 @@ export default function SearchFiltersBar({ resultCount = 0, embedded = false }) 
               >
                 Rechercher
               </button>
+              <button
+                type="button"
+                onClick={resetFilters}
+                disabled={loading}
+                title="Réinitialiser tous les filtres"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-immo-beige transition-colors disabled:opacity-60"
+              >
+                <FontAwesomeIcon icon={faRotateLeft} className="text-xs" />
+                Réinitialiser
+              </button>
               <ViewModeToggle />
             </div>
           </div>
@@ -114,7 +137,13 @@ export default function SearchFiltersBar({ resultCount = 0, embedded = false }) 
             <FilterSelect
               label="Rayon"
               value={String(filters.rayon)}
-              onChange={(v) => updateFilter('rayon', Number(v))}
+              onChange={(v) => {
+                const rayon = Number(v);
+                updateFilter('rayon', rayon);
+                if (useGeoRadius && geoCenter) {
+                  searchNearbyFromCenter(rayon);
+                }
+              }}
               options={RAYONS.map((r) => ({ value: String(r), label: `Rayon ${r} km` }))}
             />
             <button
@@ -130,6 +159,20 @@ export default function SearchFiltersBar({ resultCount = 0, embedded = false }) 
               <FontAwesomeIcon icon={faLocationCrosshairs} />
               Zone autour de moi
             </button>
+            {onTogglePrixMoyen && (
+              <button
+                type="button"
+                onClick={onTogglePrixMoyen}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+                  showPrixMoyen
+                    ? 'border-immo-orange bg-immo-orange/10 text-immo-orange'
+                    : 'border-gray-200 text-gray-600 hover:bg-immo-beige'
+                }`}
+              >
+                <FontAwesomeIcon icon={faChartColumn} className="text-xs" />
+                {showPrixMoyen ? 'Masquer prix m²' : 'Prix m² / quartier'}
+              </button>
+            )}
             <span className="text-gray-400 ml-auto">
               {loading ? 'Chargement...' : `${resultCount} résultat${resultCount > 1 ? 's' : ''}`}
             </span>

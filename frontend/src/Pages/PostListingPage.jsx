@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
 import PageLayout from '../Components/PageLayout';
 import { useListings } from '../context/ListingsContext';
 import { useAuth } from '../context/AuthContext';
-import { LOCATIONS, PROPERTY_TYPES } from '../data/listings';
+import { getQuartiers } from '../api/services/quartiers.service';
+import { getCurrentPosition, LIBREVILLE_CENTER } from '../utils/geolocation';
 
 const inputClass =
   'w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-immo-green/30 focus:border-immo-green placeholder:text-gray-400';
@@ -11,23 +14,17 @@ const inputClass =
 const labelClass = 'block text-sm font-medium text-gray-700 mb-2';
 
 const INITIAL_FORM = {
-  title: '',
-  transaction: 'Vente',
-  type: 'Appartement',
-  location: 'Libreville',
-  address: '',
-  price: '',
-  beds: '',
-  baths: '',
-  sqft: '',
+  titre: '',
+  type: 'vente',
   description: '',
-  charges: '',
-  year: '',
-  parking: '',
-  furnished: 'Non',
-  floor: '',
-  contactName: '',
-  contactPhone: '',
+  prix: '',
+  surface: '',
+  nbr_pieces: '',
+  quartierId: '',
+  lat: '',
+  lng: '',
+  disponible: true,
+  photoUrl: '',
 };
 
 export default function PostListingPage() {
@@ -35,17 +32,48 @@ export default function PostListingPage() {
   const { addListing } = useListings();
   const { isAuthenticated } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
+  const [quartiers, setQuartiers] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [locating, setLocating] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/connexion', { state: { from: '/deposer' }, replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    getQuartiers()
+      .then((data) => setQuartiers(data.quartiers ?? []))
+      .catch(() => setQuartiers([]));
+  }, []);
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleUseMyPosition = async () => {
+    setLocating(true);
+    const pos = (await getCurrentPosition()) ?? LIBREVILLE_CENTER;
+    setForm((prev) => ({
+      ...prev,
+      lat: String(pos.lat),
+      lng: String(pos.lng),
+    }));
+    setLocating(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!form.lat || !form.lng) {
+      setError('La localisation GPS est requise pour publier une annonce géolocalisée.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const newListing = await addListing(form);
@@ -61,22 +89,7 @@ export default function PostListingPage() {
   };
 
   if (!isAuthenticated) {
-    return (
-      <PageLayout>
-        <div className="max-w-lg mx-auto text-center py-20">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Connexion requise</h1>
-          <p className="text-sm text-gray-500 mb-6">
-            Vous devez être connecté pour publier une annonce.
-          </p>
-          <Link
-            to="/connexion"
-            className="inline-block px-6 py-3 bg-immo-green text-white text-sm font-semibold rounded-xl hover:bg-immo-green-dark transition-colors"
-          >
-            Se connecter
-          </Link>
-        </div>
-      </PageLayout>
-    );
+    return null;
   }
 
   if (submitted) {
@@ -101,7 +114,7 @@ export default function PostListingPage() {
             Déposer une annonce
           </h1>
           <p className="mt-2 text-sm text-gray-500">
-            Remplissez le formulaire ci-dessous pour publier votre bien sur ImmoLib.
+            Renseignez les champs correspondant à la base de données. La position GPS permet la recherche par kilomètre.
           </p>
         </div>
 
@@ -113,236 +126,188 @@ export default function PostListingPage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="bg-immo-beige rounded-2xl p-6 sm:p-8 space-y-5">
-            <h2 className="text-lg font-bold text-gray-900">Informations du bien</h2>
+            <h2 className="text-lg font-bold text-gray-900">Informations principales</h2>
 
             <div>
-              <label htmlFor="title" className={labelClass}>Titre de l&apos;annonce</label>
+              <label htmlFor="titre" className={labelClass}>Titre *</label>
               <input
-                id="title"
+                id="titre"
                 type="text"
                 required
-                value={form.title}
-                onChange={(e) => updateField('title', e.target.value)}
-                placeholder="Ex : Villa moderne avec piscine"
+                value={form.titre}
+                onChange={(e) => updateField('titre', e.target.value)}
+                placeholder="Ex : Studio meublé à Nzeng-Ayong"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <span className={labelClass}>Type de transaction *</span>
+              <div className="flex rounded-xl bg-white p-1 border border-gray-200">
+                {[
+                  { value: 'vente', label: 'Vente' },
+                  { value: 'location', label: 'Location' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => updateField('type', value)}
+                    className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-colors ${
+                      form.type === value
+                        ? 'bg-immo-green text-white'
+                        : 'text-gray-600 hover:text-immo-green'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="prix" className={labelClass}>Prix (FCFA) *</label>
+              <input
+                id="prix"
+                type="number"
+                required
+                min="0"
+                value={form.prix}
+                onChange={(e) => updateField('prix', e.target.value)}
+                placeholder="Ex : 850000"
                 className={inputClass}
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <span className={labelClass}>Type de transaction</span>
-                <div className="flex rounded-xl bg-white p-1 border border-gray-200">
-                  {['Vente', 'Location'].map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => updateField('transaction', option)}
-                      className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-colors ${
-                        form.transaction === option
-                          ? 'bg-immo-green text-white'
-                          : 'text-gray-600 hover:text-immo-green'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="type" className={labelClass}>Type de bien</label>
-                <select
-                  id="type"
-                  required
-                  value={form.type}
-                  onChange={(e) => updateField('type', e.target.value)}
-                  className={`${inputClass} appearance-none cursor-pointer`}
-                >
-                  {PROPERTY_TYPES.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label htmlFor="location" className={labelClass}>Ville</label>
-                <select
-                  id="location"
-                  required
-                  value={form.location}
-                  onChange={(e) => updateField('location', e.target.value)}
-                  className={`${inputClass} appearance-none cursor-pointer`}
-                >
-                  {LOCATIONS.map((city) => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="price" className={labelClass}>Prix (FCFA)</label>
+                <label htmlFor="surface" className={labelClass}>Surface (m²)</label>
                 <input
-                  id="price"
+                  id="surface"
                   type="number"
-                  required
                   min="0"
-                  value={form.price}
-                  onChange={(e) => updateField('price', e.target.value)}
-                  placeholder="Ex : 850000"
+                  value={form.surface}
+                  onChange={(e) => updateField('surface', e.target.value)}
+                  placeholder="Ex : 65"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="nbr_pieces" className={labelClass}>Nombre de pièces</label>
+                <input
+                  id="nbr_pieces"
+                  type="number"
+                  min="0"
+                  value={form.nbr_pieces}
+                  onChange={(e) => updateField('nbr_pieces', e.target.value)}
+                  placeholder="Ex : 3"
                   className={inputClass}
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="address" className={labelClass}>Adresse complète</label>
-              <input
-                id="address"
-                type="text"
-                required
-                value={form.address}
-                onChange={(e) => updateField('address', e.target.value)}
-                placeholder="Quartier, rue, numéro..."
-                className={inputClass}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="beds" className={labelClass}>Chambres</label>
-                <input
-                  id="beds"
-                  type="number"
-                  required
-                  min="0"
-                  value={form.beds}
-                  onChange={(e) => updateField('beds', e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label htmlFor="baths" className={labelClass}>Salles de bain</label>
-                <input
-                  id="baths"
-                  type="number"
-                  required
-                  min="0"
-                  value={form.baths}
-                  onChange={(e) => updateField('baths', e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label htmlFor="sqft" className={labelClass}>Surface (m²)</label>
-                <input
-                  id="sqft"
-                  type="number"
-                  required
-                  min="0"
-                  value={form.sqft}
-                  onChange={(e) => updateField('sqft', e.target.value)}
-                  className={inputClass}
-                />
-              </div>
+              <label htmlFor="quartierId" className={labelClass}>Quartier</label>
+              <select
+                id="quartierId"
+                value={form.quartierId}
+                onChange={(e) => updateField('quartierId', e.target.value)}
+                className={`${inputClass} appearance-none cursor-pointer`}
+              >
+                <option value="">Sélectionner un quartier</option>
+                {quartiers.map((q) => {
+                  const id = q._id?.toString?.() ?? q._id;
+                  return (
+                    <option key={id} value={id}>
+                      {q.nom}{q.ville ? ` — ${q.ville}` : ''}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
 
             <div>
               <label htmlFor="description" className={labelClass}>Description</label>
               <textarea
                 id="description"
-                required
                 rows={5}
                 value={form.description}
                 onChange={(e) => updateField('description', e.target.value)}
-                placeholder="Décrivez votre bien en détail..."
+                placeholder="Décrivez le bien..."
                 className={`${inputClass} resize-none`}
               />
             </div>
           </section>
 
           <section className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-5">
-            <h2 className="text-lg font-bold text-gray-900">Détails complémentaires</h2>
+            <h2 className="text-lg font-bold text-gray-900">Localisation GPS *</h2>
+            <p className="text-sm text-gray-500 -mt-2">
+              Obligatoire pour apparaître dans la recherche par rayon (km).
+            </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label htmlFor="charges" className={labelClass}>Charges</label>
+                <label htmlFor="lat" className={labelClass}>Latitude</label>
                 <input
-                  id="charges"
-                  type="text"
-                  value={form.charges}
-                  onChange={(e) => updateField('charges', e.target.value)}
-                  placeholder="Ex : Aucune, Incluses..."
+                  id="lat"
+                  type="number"
+                  step="any"
+                  required
+                  value={form.lat}
+                  onChange={(e) => updateField('lat', e.target.value)}
+                  placeholder="Ex : 0.4162"
                   className={inputClass}
                 />
               </div>
               <div>
-                <label htmlFor="year" className={labelClass}>Année de construction</label>
+                <label htmlFor="lng" className={labelClass}>Longitude</label>
                 <input
-                  id="year"
-                  type="text"
-                  value={form.year}
-                  onChange={(e) => updateField('year', e.target.value)}
-                  placeholder="Ex : 2020"
+                  id="lng"
+                  type="number"
+                  step="any"
+                  required
+                  value={form.lng}
+                  onChange={(e) => updateField('lng', e.target.value)}
+                  placeholder="Ex : 9.4673"
                   className={inputClass}
                 />
-              </div>
-              <div>
-                <label htmlFor="parking" className={labelClass}>Parking</label>
-                <input
-                  id="parking"
-                  type="text"
-                  value={form.parking}
-                  onChange={(e) => updateField('parking', e.target.value)}
-                  placeholder="Ex : 2 places"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label htmlFor="furnished" className={labelClass}>Meublé</label>
-                <select
-                  id="furnished"
-                  value={form.furnished}
-                  onChange={(e) => updateField('furnished', e.target.value)}
-                  className={`${inputClass} appearance-none cursor-pointer`}
-                >
-                  <option value="Oui">Oui</option>
-                  <option value="Non">Non</option>
-                </select>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleUseMyPosition}
+              disabled={locating}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border border-immo-green text-immo-green rounded-xl hover:bg-immo-green/5 transition-colors disabled:opacity-60"
+            >
+              <FontAwesomeIcon icon={faLocationCrosshairs} />
+              {locating ? 'Localisation...' : 'Utiliser ma position'}
+            </button>
           </section>
 
           <section className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-5">
-            <h2 className="text-lg font-bold text-gray-900">Vos coordonnées</h2>
+            <h2 className="text-lg font-bold text-gray-900">Options</h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label htmlFor="contactName" className={labelClass}>Nom complet</label>
-                <input
-                  id="contactName"
-                  type="text"
-                  required
-                  value={form.contactName}
-                  onChange={(e) => updateField('contactName', e.target.value)}
-                  placeholder="Votre nom"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label htmlFor="contactPhone" className={labelClass}>Téléphone</label>
-                <input
-                  id="contactPhone"
-                  type="tel"
-                  required
-                  value={form.contactPhone}
-                  onChange={(e) => updateField('contactPhone', e.target.value)}
-                  placeholder="+241 06X XX XX XX"
-                  className={inputClass}
-                />
-              </div>
+            <div>
+              <label htmlFor="photoUrl" className={labelClass}>URL d&apos;une photo</label>
+              <input
+                id="photoUrl"
+                type="url"
+                value={form.photoUrl}
+                onChange={(e) => updateField('photoUrl', e.target.value)}
+                placeholder="https://..."
+                className={inputClass}
+              />
             </div>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.disponible}
+                onChange={(e) => updateField('disponible', e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-immo-green focus:ring-immo-green/30"
+              />
+              <span className="text-sm text-gray-700">Bien disponible</span>
+            </label>
           </section>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">

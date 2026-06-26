@@ -2,11 +2,7 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faPhone, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { FaFacebookF, FaInstagram, FaLinkedinIn, FaXTwitter } from 'react-icons/fa6';
-
-const quickLinks = [
-  { label: 'Accueil', to: '/' },
-  { label: 'Déposer une annonce', to: '/deposer' },
-];
+import { useAuth } from '../context/AuthContext';
 
 const legalLinks = [
   { label: 'Conditions d\'utilisation', to: '/conditions' },
@@ -22,6 +18,17 @@ const socialLinks = [
 ];
 
 export default function Footer() {
+  const { isAuthenticated } = useAuth();
+
+  const quickLinks = [
+    { label: 'Accueil', to: '/' },
+    {
+      label: 'Déposer une annonce',
+      to: isAuthenticated ? '/deposer' : '/connexion',
+      state: isAuthenticated ? undefined : { from: '/deposer' },
+    },
+  ];
+
   return (
     <footer className="mt-16 rounded-[32px] bg-immo-beige border border-immo-beige-dark/40 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12 lg:py-14">
@@ -51,10 +58,11 @@ export default function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Navigation</h3>
             <ul className="space-y-3">
-              {quickLinks.map(({ label, to }) => (
-                <li key={to}>
+              {quickLinks.map(({ label, to, state }) => (
+                <li key={label}>
                   <Link
                     to={to}
+                    state={state}
                     className="text-sm text-gray-600 hover:text-immo-green transition-colors"
                   >
                     {label}

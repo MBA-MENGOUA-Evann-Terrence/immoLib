@@ -212,29 +212,42 @@ export function mapAnnonceToListing(doc, quartierNom = '') {
 }
 
 export function mapFormToAnnoncePayload(formData) {
-  const description = [
-    formData.description,
-    formData.type ? `Type de bien : ${formData.type}` : '',
-    formData.address ? `Adresse : ${formData.address}, ${formData.location}` : '',
-    formData.charges ? `Charges : ${formData.charges}` : '',
-    formData.furnished ? `Meublé : ${formData.furnished}` : '',
-    formData.contactName ? `Contact : ${formData.contactName}` : '',
-    formData.contactPhone ? `Tél : ${formData.contactPhone}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  return {
-    titre: formData.title,
-    description,
-    type: mapTransactionToApiType(formData.transaction) ?? 'vente',
-    prix: Number(formData.price),
-    surface: formData.sqft ? Number(formData.sqft) : null,
-    nbr_pieces: formData.beds ? Number(formData.beds) : null,
+  const payload = {
+    titre: formData.titre?.trim(),
+    description: formData.description?.trim() || '',
+    type: formData.type,
+    prix: Number(formData.prix),
+    disponible: formData.disponible !== false,
     photos: [],
-    localisation: null,
-    disponible: true,
   };
+
+  if (formData.surface !== '' && formData.surface != null) {
+    payload.surface = Number(formData.surface);
+  }
+
+  if (formData.nbr_pieces !== '' && formData.nbr_pieces != null) {
+    payload.nbr_pieces = Number(formData.nbr_pieces);
+  }
+
+  if (formData.quartierId) {
+    payload.quartierId = formData.quartierId;
+  }
+
+  const lat = Number(formData.lat);
+  const lng = Number(formData.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    payload.localisation = {
+      type: 'Point',
+      coordinates: [lng, lat],
+    };
+  }
+
+  const photoUrl = formData.photoUrl?.trim();
+  if (photoUrl) {
+    payload.photos = [photoUrl];
+  }
+
+  return payload;
 }
 
 export { getInitials, propertyImage };

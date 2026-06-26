@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { FaGoogle, FaFacebookF } from 'react-icons/fa6';
@@ -11,6 +11,7 @@ const inputClass =
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register, loading, error } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -37,7 +38,7 @@ export default function RegisterPage() {
         password,
         telephone: telephone || undefined,
       });
-      navigate('/');
+      navigate(location.state?.from || '/');
     } catch (err) {
       setFormError(err.message);
     }
@@ -49,23 +50,24 @@ export default function RegisterPage() {
     <div className="min-h-screen flex flex-col lg:flex-row">
       <AuthHero />
 
-      <div className="flex-1 flex flex-col min-h-screen bg-white">
-        <div className="flex items-center justify-between p-6 lg:p-8">
-          <Link to="/" className="text-xl font-bold text-immo-green lg:hidden">
+      <div className="flex-1 flex flex-col min-h-screen bg-immo-beige/40">
+        <div className="flex items-center justify-between p-6 lg:p-8 border-b border-immo-beige-dark/30 bg-white">
+          <Link to="/" className="text-xl font-bold text-immo-green">
             ImmoLib
           </Link>
           <Link
-            to="/inscription"
-            className="ml-auto px-5 py-2 text-sm font-medium bg-gray-900 text-white rounded-full"
+            to="/connexion"
+            state={location.state}
+            className="px-5 py-2 text-sm font-medium border border-immo-green text-immo-green rounded-xl hover:bg-immo-green/5 transition-colors"
           >
-            S&apos;inscrire
+            Se connecter
           </Link>
         </div>
 
-        <div className="flex-1 flex items-center justify-center px-6 sm:px-10 pb-10">
-          <div className="w-full max-w-md">
+        <div className="flex-1 flex items-center justify-center px-6 sm:px-10 py-10">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-immo-beige-dark/40 shadow-card p-6 sm:p-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
-              Rejoignez ImmoLib !
+              Rejoignez <span className="text-immo-green">ImmoLib</span> !
             </h1>
             <p className="mt-2 text-sm text-gray-500">
               Créez votre compte gratuitement
@@ -187,7 +189,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60"
+                className="w-full py-3.5 bg-immo-orange text-white text-sm font-semibold rounded-xl hover:bg-immo-orange-dark transition-colors disabled:opacity-60"
               >
                 {loading ? 'Création...' : 'Créer mon compte'}
               </button>
@@ -207,14 +209,14 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-immo-beige transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-3 border border-immo-beige-dark/60 rounded-xl text-sm text-gray-600 hover:border-immo-green/40 hover:bg-immo-green/5 transition-colors"
               >
                 <FaGoogle className="text-base" />
                 Continuer avec Google
               </button>
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-immo-beige transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-3 border border-immo-beige-dark/60 rounded-xl text-sm text-gray-600 hover:border-immo-green/40 hover:bg-immo-green/5 transition-colors"
               >
                 <FaFacebookF className="text-base" />
                 Continuer avec Facebook
@@ -223,7 +225,11 @@ export default function RegisterPage() {
 
             <p className="mt-8 text-center text-sm text-gray-500">
               Vous avez déjà un compte ?{' '}
-              <Link to="/connexion" className="text-immo-green font-medium hover:underline">
+              <Link
+                to="/connexion"
+                state={location.state}
+                className="text-immo-green font-medium hover:underline"
+              >
                 Se connecter
               </Link>
             </p>

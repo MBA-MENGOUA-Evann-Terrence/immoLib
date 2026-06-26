@@ -6,14 +6,15 @@ import { getCurrentPosition, LIBREVILLE_CENTER } from '../../utils/geolocation';
 import MapListingPopup from './MapListingPopup';
 import 'leaflet/dist/leaflet.css';
 
-/** Zone verrouillée autour de Libreville — carte très stable. */
+/** Zone verrouillée autour de Libreville — mode navigation classique. */
 const LIBREVILLE_BOUNDS = L.latLngBounds([0.37, 9.40], [0.46, 9.52]);
 const FIXED_ZOOM = 13;
 const MAX_PAN_METERS = 400;
 
-function createPinIcon(active, transaction = 'vente') {
-  const fill = active ? '#F28500' : transaction === 'Location' ? '#008080' : '#1f2937';
-  const scale = active ? 1.15 : 1;
+/** Marqueur annonce — jamais orange (réservé à la position utilisateur). */
+function createListingPinIcon(active, transaction = 'vente') {
+  const fill = transaction === 'Location' ? '#008080' : '#1f2937';
+  const scale = active ? 1.18 : 1;
 
   return L.divIcon({
     className: 'custom-pin-icon',
@@ -31,11 +32,31 @@ function createPinIcon(active, transaction = 'vente') {
   });
 }
 
-/** Carte fixe : recentre doucement si l'utilisateur s'éloigne trop de Libreville. */
-function MapStabilizer() {
+/** Marqueur orange unique : position actuelle de l'utilisateur. */
+function createUserPositionIcon() {
+  return L.divIcon({
+    className: 'user-position-icon',
+    html: `
+      <div style="position:relative;width:28px;height:28px">
+        <span style="position:absolute;inset:0;border-radius:50%;background:#F28500;opacity:0.25;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite"></span>
+        <span style="position:absolute;inset:4px;border-radius:50%;background:#F28500;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.35)"></span>
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+}
+
+/** Mode classique : carte verrouillée sur Libreville. */
+function MapStabilizer({ geoMode }) {
   const map = useMap();
 
   useEffect(() => {
+    if (geoMode) {
+      map.setMaxBounds(null);
+      return undefined;
+    }
+
     map.setView([LIBREVILLE_CENTER.lat, LIBREVILLE_CENTER.lng], FIXED_ZOOM, { animate: false });
     map.setMaxBounds(LIBREVILLE_BOUNDS);
     map.setMinZoom(FIXED_ZOOM);
@@ -54,17 +75,44 @@ function MapStabilizer() {
 
     map.on('moveend', onMoveEnd);
     return () => map.off('moveend', onMoveEnd);
-  }, [map]);
+  }, [map, geoMode]);
 
   return null;
 }
 
-/**
- * Trace un itinéraire OSRM sans déplacer la carte.
- * @param {{ lat: number, lng: number }|null} destination
- * @param {(coords: [number, number][]|null) => void} onRoute
- */
-function RouteFetcher({ destination, onRoute }) {
+/** Calcule les bounds d'un cercle sans l'attacher à la carte (évite l'erreur getBounds). */
+function circleBounds(lat, lng, radiusMeters) {
+  const dLat = radiusMeters / 111320;
+  const cosLat = Math.cos((lat * Math.PI) / 180) || 1e-6;
+  const dLng = radiusMeters / (111320 * cosLat);
+  return L.latLngBounds([lat - dLat, lng - dLng], [lat + dLat, lng + dLng]);
+}
+
+/** Ajuste la vue sur le cercle de recherche (rayon N km). */
+function FitGeoRadius({ center, radiusKm, active }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!active || !center || !radiusKm) return;
+
+    const bounds = circleBounds(center.lat, center.lng, radiusKm * 1000);
+
+    const fit = () => {
+      if (!map.getContainer()?.isConnected) return;
+      map.fitBounds(bounds, { padding: [32, 32], maxZoom: 14, animate: true });
+    };
+
+    if (map._loaded) {
+      fit();
+    } else {
+      map.whenReady(fit);
+    }
+  }, [map, center?.lat, center?.lng, radiusKm, active]);
+
+  return null;
+}
+
+function RouteFetcher({ destination, origin, onRoute }) {
   useEffect(() => {
     if (!destination) {
       onRoute(null);
@@ -74,10 +122,10 @@ function RouteFetcher({ destination, onRoute }) {
     let cancelled = false;
 
     (async () => {
-      const origin = (await getCurrentPosition()) ?? LIBREVILLE_CENTER;
+      const start = origin ?? (await getCurrentPosition()) ?? LIBREVILLE_CENTER;
       const url =
         `https://router.project-osrm.org/route/v1/driving/` +
-        `${origin.lng},${origin.lat};${destination.lng},${destination.lat}` +
+        `${start.lng},${start.lat};${destination.lng},${destination.lat}` +
         `?overview=full&geometries=geojson`;
 
       try {
@@ -96,7 +144,7 @@ function RouteFetcher({ destination, onRoute }) {
     return () => {
       cancelled = true;
     };
-  }, [destination, onRoute]);
+  }, [destination, origin, onRoute]);
 
   return null;
 }
@@ -127,15 +175,15 @@ function MapMarkers({
               if (ref) markerRefs.current[listing.id] = ref;
             }}
             position={[listing.coordinates.lat, listing.coordinates.lng]}
-            icon={createPinIcon(isActive, listing.transaction)}
-            zIndexOffset={isActive ? 1000 : 0}
+            icon={createListingPinIcon(isActive, listing.transaction)}
+            zIndexOffset={isActive ? 500 : 0}
             eventHandlers={{
               click: () => onSelectListing(String(listing.id)),
             }}
           >
             <Popup
-              maxWidth={160}
-              minWidth={148}
+              maxWidth={124}
+              minWidth={112}
               autoPan={false}
               className="map-popup-compact"
             >
@@ -159,11 +207,15 @@ export default function SearchResultsMap() {
     setActiveListingId,
     rayonKm,
     useGeoRadius,
+    geoCenter,
+    userPosition,
   } = useSearchResults();
 
   const [routeTarget, setRouteTarget] = useState(null);
   const [routeCoords, setRouteCoords] = useState(null);
   const [routeLoadingId, setRouteLoadingId] = useState(null);
+
+  const searchCenter = userPosition ?? geoCenter;
 
   const listingsWithCoords = useMemo(
     () => filteredListings.filter((l) => l.coordinates?.lat && l.coordinates?.lng),
@@ -191,9 +243,19 @@ export default function SearchResultsMap() {
     setRouteLoadingId(null);
   }, []);
 
+  const mapCenter = useGeoRadius && searchCenter
+    ? [searchCenter.lat, searchCenter.lng]
+    : [LIBREVILLE_CENTER.lat, LIBREVILLE_CENTER.lng];
+
   return (
     <div className="relative w-full h-full min-h-[360px]">
-      {listingsWithCoords.length === 0 && (
+      {useGeoRadius && searchCenter && (
+        <div className="absolute top-3 left-3 z-[1000] px-3 py-1.5 bg-white/95 rounded-lg shadow text-xs text-gray-600">
+          Rayon <strong>{rayonKm} km</strong> autour de vous
+        </div>
+      )}
+
+      {listingsWithCoords.length === 0 && !useGeoRadius && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] px-3 py-1.5 bg-white/95 rounded-lg shadow text-xs text-gray-600">
           Aucun bien géolocalisé
         </div>
@@ -210,45 +272,60 @@ export default function SearchResultsMap() {
       )}
 
       <MapContainer
-        center={[LIBREVILLE_CENTER.lat, LIBREVILLE_CENTER.lng]}
+        center={mapCenter}
         zoom={FIXED_ZOOM}
-        minZoom={FIXED_ZOOM}
+        minZoom={useGeoRadius ? 10 : FIXED_ZOOM}
         maxZoom={14}
         className="w-full h-full z-0 rounded-2xl"
         scrollWheelZoom={false}
         doubleClickZoom={false}
         boxZoom={false}
-        maxBounds={LIBREVILLE_BOUNDS}
-        maxBoundsViscosity={1}
+        maxBounds={useGeoRadius ? undefined : LIBREVILLE_BOUNDS}
+        maxBoundsViscosity={useGeoRadius ? 0 : 1}
       >
-        <MapStabilizer />
+        <MapStabilizer geoMode={useGeoRadius} />
+        {useGeoRadius && searchCenter && (
+          <FitGeoRadius center={searchCenter} radiusKm={rayonKm} active={useGeoRadius} />
+        )}
         <TileLayer
           attribution='&copy; OpenStreetMap'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {useGeoRadius && (
-          <Circle
-            center={[LIBREVILLE_CENTER.lat, LIBREVILLE_CENTER.lng]}
-            radius={rayonKm * 1000}
-            pathOptions={{
-              color: '#008080',
-              fillColor: '#008080',
-              fillOpacity: 0.07,
-              weight: 2,
-              dashArray: '6 4',
-            }}
-          />
+        {useGeoRadius && searchCenter && (
+          <>
+            <Circle
+              center={[searchCenter.lat, searchCenter.lng]}
+              radius={rayonKm * 1000}
+              pathOptions={{
+                color: '#F28500',
+                fillColor: '#F28500',
+                fillOpacity: 0.08,
+                weight: 2,
+                dashArray: '6 4',
+              }}
+            />
+            <Marker
+              position={[searchCenter.lat, searchCenter.lng]}
+              icon={createUserPositionIcon()}
+              zIndexOffset={2000}
+              interactive={false}
+            />
+          </>
         )}
 
         {routeCoords && (
           <Polyline
             positions={routeCoords}
-            pathOptions={{ color: '#F28500', weight: 4, opacity: 0.85 }}
+            pathOptions={{ color: '#008080', weight: 4, opacity: 0.85 }}
           />
         )}
 
-        <RouteFetcher destination={routeTarget} onRoute={handleRouteResult} />
+        <RouteFetcher
+          destination={routeTarget}
+          origin={searchCenter}
+          onRoute={handleRouteResult}
+        />
 
         <MapMarkers
           activeListing={activeListing}

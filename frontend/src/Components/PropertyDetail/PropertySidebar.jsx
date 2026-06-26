@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPhone,
@@ -6,6 +7,7 @@ import {
   faPaperPlane,
   faCircleCheck,
   faUser,
+  faLock,
 } from '@fortawesome/free-solid-svg-icons';
 import { contacterAnnonce } from '../../api/services/annonces.service.js';
 import { useAuth } from '../../context/AuthContext';
@@ -13,7 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 const EMPTY_FORM = { nom: '', email: '', telephone: '', message: '' };
 
 export default function PropertySidebar({ listing }) {
-  const { utilisateur } = useAuth();
+  const { utilisateur, isAuthenticated } = useAuth();
   const publisher = listing.publisher;
 
   const [form, setForm] = useState(() => ({
@@ -35,6 +37,8 @@ export default function PropertySidebar({ listing }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAuthenticated) return;
+
     setSending(true);
     setError(null);
     setSuccess(false);
@@ -50,30 +54,34 @@ export default function PropertySidebar({ listing }) {
     }
   };
 
+  if (!publisher) {
+    return null;
+  }
+
   return (
     <aside className="lg:sticky lg:top-24">
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-card space-y-6">
-        {publisher ? (
-          <div className="flex items-start gap-4 pb-6 border-b border-gray-100">
-            {publisher.photoUrl ? (
-              <img
-                src={publisher.photoUrl}
-                alt={publisher.name ? `Photo de ${publisher.name}` : 'Photo de profil'}
-                className="w-16 h-16 rounded-full object-cover border-2 border-immo-beige shrink-0"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-immo-green/10 flex items-center justify-center shrink-0">
-                <span className="text-lg font-bold text-immo-green">
-                  {publisher.initials || <FontAwesomeIcon icon={faUser} />}
-                </span>
-              </div>
-            )}
+        <div className="flex items-start gap-4 pb-6 border-b border-gray-100">
+          {publisher.photoUrl ? (
+            <img
+              src={publisher.photoUrl}
+              alt={publisher.name ? `Photo de ${publisher.name}` : 'Photo de profil'}
+              className="w-16 h-16 rounded-full object-cover border-2 border-immo-beige shrink-0"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-immo-green/10 flex items-center justify-center shrink-0">
+              <span className="text-lg font-bold text-immo-green">
+                {publisher.initials || <FontAwesomeIcon icon={faUser} />}
+              </span>
+            </div>
+          )}
 
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Publié par</p>
-              {publisher.name && (
-                <p className="text-base font-bold text-gray-900 truncate">{publisher.name}</p>
-              )}
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Publié par</p>
+            {publisher.name && (
+              <p className="text-base font-bold text-gray-900 truncate">{publisher.name}</p>
+            )}
+            {isAuthenticated && (
               <div className="mt-2 space-y-1.5 text-sm text-gray-600">
                 {publisher.phone && (
                   <a
@@ -94,18 +102,34 @@ export default function PropertySidebar({ listing }) {
                   </a>
                 )}
               </div>
-            </div>
+            )}
           </div>
-        ) : (
-          <div className="pb-6 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900">Contacter le propriétaire</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Les informations du publieur ne sont pas disponibles pour cette annonce.
+        </div>
+
+        {!isAuthenticated ? (
+          <div className="text-center py-2">
+            <div className="w-12 h-12 mx-auto rounded-full bg-immo-beige flex items-center justify-center mb-3">
+              <FontAwesomeIcon icon={faLock} className="text-immo-green" />
+            </div>
+            <p className="text-sm font-medium text-gray-900">Connexion requise</p>
+            <p className="text-xs text-gray-500 mt-1 mb-4">
+              Connectez-vous pour contacter le propriétaire de ce bien.
+            </p>
+            <Link
+              to="/connexion"
+              state={{ from: `/annonces/${listing.id}` }}
+              className="inline-flex items-center justify-center w-full py-3 bg-immo-green text-white text-sm font-semibold rounded-xl hover:bg-immo-green-dark transition-colors"
+            >
+              Se connecter
+            </Link>
+            <p className="text-xs text-gray-400 mt-3">
+              Pas encore de compte ?{' '}
+              <Link to="/inscription" className="text-immo-green hover:underline">
+                S&apos;inscrire
+              </Link>
             </p>
           </div>
-        )}
-
-        {publisher && (
+        ) : (
           <>
             <h3 className="text-lg font-bold text-gray-900">Envoyer un message</h3>
 
