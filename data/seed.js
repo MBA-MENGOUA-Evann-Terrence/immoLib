@@ -16,7 +16,6 @@ db.utilisateurs.insertMany(nomsUtilisateurs.map(nom => {
         email: nom.toLowerCase().replace(" ", ".") + "@gmail.com",
         telephone: `+241 ${prefixe} ${reste} 55`,
         photo_url: "https://ui-avatars.com/api/?name=" + nom.replace(" ", "+"),
-        favoris: [],
         createdAt: new Date()
     };
 }));
@@ -45,12 +44,7 @@ const annoncesData = Array.from({ length: 50 }, (_, i) => {
   const type = types[i % 2];
   const nbrPieces = (i % 6) + 1;
   
-  // Logique d'options aléatoires
-  const options = [];
-  if (i % 2 === 0) options.push("parking");
-  if (i % 5 === 0) options.push("piscine");
-  if (i % 3 === 0) options.push("climatisation");
-  if (i % 7 === 0) options.push("jardin");
+
 
   return {
     userId: utilisateurs[i % utilisateurs.length]._id,
@@ -60,15 +54,6 @@ const annoncesData = Array.from({ length: 50 }, (_, i) => {
     type: type,
     prix: type === "location" ? (150000 + (i * 5000)) : (40000000 + (i * 1000000)),
     surface: 40 + (i * 2),
-    // Structure détaillée normalisée
-    details: {
-        chambres: nbrPieces,
-        salons: Math.ceil(nbrPieces / 3),
-        douches: Math.ceil(nbrPieces / 2),
-        toilettes: Math.ceil(nbrPieces / 2),
-        cuisines: 1,
-        options: options
-    },
     photos: [`https://picsum.photos/seed/${i}a/400/300`, `https://picsum.photos/seed/${i}b/400/300`],
     localisation: { type: "Point", coordinates: [9.45 + (Math.random() * 0.05), 0.39 + (Math.random() * 0.05)] },
     disponible: true,
@@ -78,4 +63,4 @@ const annoncesData = Array.from({ length: 50 }, (_, i) => {
 
 db.annonces.insertMany(annoncesData);
 
-print("Peuplement terminé avec succès : Base de données V2 prête.");
+print("Peuplement terminé avec succès : Base de données prête.");
