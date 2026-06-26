@@ -1,4 +1,3 @@
-Voici le contenu complet, prêt à être copié-collé directement dans l'interface de création de votre fichier `README.md` sur GitHub.
 
 ```markdown
 # immoLib - Plateforme d'Annonces Immobilières
@@ -7,19 +6,19 @@ Voici le contenu complet, prêt à être copié-collé directement dans l'interf
 
 ---
 
-## 👥 Membres du Groupe
+## Membres du Groupe
 * **MBA MENGOUA Evann Terrence**
 * **AYONGA TOUGANDE Noëlle-Wilda**
 * **BIAKBA Yvette**
 
 ---
 
-## 🏢 Contexte Métier
+## Contexte Métier
 Le marché immobilier à Libreville souffre d'une fragmentation de l'offre entre particuliers et agences. **immoLib** répond à ce besoin en offrant un outil centralisé permettant aux utilisateurs de publier des biens, de les rechercher par mots-clés et de les localiser précisément via une interface cartographique interactive.
 
 ---
 
-## 🛠️ Prérequis
+## Prérequis
 * [Node.js](https://nodejs.org/) (v18+)
 * [MongoDB](https://www.mongodb.com/) (Atlas ou instance locale)
 * [npm](https://www.npmjs.com/)
@@ -49,7 +48,7 @@ JWT_SECRET=change_moi_par_une_longue_chaine_secrete
 
 ---
 
-## 🚀 Lancement de l'application
+## Lancement de l'application
 
 Pour lancer simultanément le backend et le frontend en mode développement, utilisez la commande suivante à la racine :
 
@@ -62,7 +61,7 @@ npm run dev
 
 ---
 
-## 🗄️ Peuplement de la base de données
+## Peuplement de la base de données
 
 Vous avez deux options pour initialiser vos données :
 
@@ -92,7 +91,7 @@ load("seed.js");
 
 ---
 
-## 🛠️ Scripts disponibles
+## Scripts disponibles
 
 * `npm start` : Lance uniquement le serveur backend.
 * `npm run dev` : Lance le backend et le frontend simultanément.
@@ -102,9 +101,5 @@ load("seed.js");
 ---
 
 
-
-*Projet réalisé pour le cours de NoSQL - 2026*
-
-```
 
 ```
