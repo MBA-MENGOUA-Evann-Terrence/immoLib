@@ -22,10 +22,17 @@ async function getAnnonces(req, res) {
 async function rechercheTexte(req, res) {
   try {
     const q = req.query.q;
-    if (!q) return res.status(400).json({ erreur: "Parametre 'q' requis (mots-cles)." });
+    if (!q || !String(q).trim()) {
+      return res.status(400).json({ erreur: "Parametre 'q' requis (mots-cles)." });
+    }
     const resultats = await Annonce.rechercheTexte(q);
     res.json({ total: resultats.length, annonces: resultats });
   } catch (err) {
+    if (err.message?.includes("$search") || err.code === 8) {
+      return res.status(400).json({
+        erreur: "Requête de recherche invalide. Utilisez des mots simples sans caractères spéciaux.",
+      });
+    }
     res.status(500).json({ erreur: err.message });
   }
 }
@@ -58,10 +65,12 @@ async function getAnnonceParId(req, res) {
         auteur = {
           _id: utilisateur._id,
           nom: utilisateur.nom,
-          email: utilisateur.email,
-          telephone: utilisateur.telephone ?? null,
           photo_profil: utilisateur.photo_profil ?? null,
         };
+        if (req.userId) {
+          auteur.email = utilisateur.email;
+          auteur.telephone = utilisateur.telephone ?? null;
+        }
       }
     }
 

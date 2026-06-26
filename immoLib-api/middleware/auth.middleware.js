@@ -32,4 +32,21 @@ function exigerAdmin(req, res, next) {
   next();
 }
 
-module.exports = { authentifier, exigerAdmin };
+function authOptionnel(req, res, next) {
+  const entete = req.headers.authorization || "";
+  const [schema, token] = entete.split(" ");
+
+  if (schema === "Bearer" && token) {
+    try {
+      const charge = jwt.verify(token, JWT_SECRET);
+      req.userId = charge.id;
+      req.utilisateur = charge;
+      req.estAdmin = charge.etat === 1;
+    } catch {
+      // Token invalide : visiteur non connecté
+    }
+  }
+  next();
+}
+
+module.exports = { authentifier, exigerAdmin, authOptionnel };

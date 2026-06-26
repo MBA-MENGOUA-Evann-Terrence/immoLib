@@ -86,33 +86,90 @@ async function rechercheParFiltres({
 }
 
 // --- 2) RECHERCHE TEXTE (index text sur titre + description) ---
-// Reprend: db.annonces.find({ $text: { $search: "Studio" } })
-// On ajoute le score de pertinence pour trier du plus pertinent au moins pertinent.
-async function rechercheTexte(motsCles) {
+function sanitizeTextSearch(motsCles) {
+  return String(motsCles ?? "")
+    .trim()
+    .replace(/[^\w\sàâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function rechercheTexteFallbackRegex(motsCles) {
+  const terms = motsCles.split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return [];
+
+  const or = terms.flatMap((term) => {
+    const rx = new RegExp(escapeRegex(term), "i");
+    return [{ titre: rx }, { description: rx }];
+  });
+
   return collection()
-    .find(
-      { $text: { $search: motsCles }, supprime: { $ne: true } },
-      { projection: { score: { $meta: "textScore" } } }
-    )
-    .sort({ score: { $meta: "textScore" } })
+    .find({ supprime: { $ne: true }, $or: or })
     .toArray();
 }
 
+// Reprend: db.annonces.find({ $text: { $search: "Studio" } })
+async function rechercheTexte(motsCles) {
+  const q = sanitizeTextSearch(motsCles);
+  if (!q) return [];
+
+  try {
+    return await collection()
+      .find(
+        { $text: { $search: q }, supprime: { $ne: true } },
+        { projection: { score: { $meta: "textScore" } } }
+      )
+      .sort({ score: { $meta: "textScore" } })
+      .toArray();
+  } catch (err) {
+    const indexManquant =
+      err.code === 27 ||
+      err.codeName === "IndexNotFound" ||
+      /text index/i.test(err.message ?? "");
+
+    if (indexManquant) {
+      console.warn("[rechercheTexte] Index text absent, repli regex :", err.message);
+      return rechercheTexteFallbackRegex(q);
+    }
+    throw err;
+  }
+}
+
 // --- 3) RECHERCHE GEOSPATIALE $near (index 2dsphere sur localisation) ---
-// Reprend l'esprit de: db.annonces.find({ localisation: { $near: { $geometry, $maxDistance } } })
-// rayonKm est converti en metres pour $maxDistance.
+// Utilise $geoNear pour trier par distance et renvoyer distanceM (metres).
 async function rechercheProximite(lng, lat, rayonKm) {
-  return collection()
-    .find({
-      localisation: {
-        $near: {
-          $geometry: { type: "Point", coordinates: [Number(lng), Number(lat)] },
-          $maxDistance: Number(rayonKm) * 1000,
-        },
+  const query = {
+    supprime: { $ne: true },
+    localisation: { $exists: true, $ne: null },
+  };
+
+  const pipeline = [
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: [Number(lng), Number(lat)] },
+        distanceField: "distanceM",
+        maxDistance: Number(rayonKm) * 1000,
+        spherical: true,
+        query,
       },
-      supprime: { $ne: true },
-    })
-    .toArray();
+    },
+    {
+      $lookup: {
+        from: "quartiers",
+        localField: "quartierId",
+        foreignField: "_id",
+        as: "q",
+      },
+    },
+    { $unwind: { path: "$q", preserveNullAndEmptyArrays: true } },
+    { $addFields: { quartier: "$q.nom" } },
+  ];
+
+  return collection().aggregate(pipeline).toArray();
 }
 
 // --- Detail d'une annonce par son _id (READ findOne) ---

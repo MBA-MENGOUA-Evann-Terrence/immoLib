@@ -6,6 +6,7 @@ const express = require("express");
 const cors = require("cors");
 
 const { connectDB } = require("./config/db");
+const { ensureAnnonceIndexes } = require("./config/indexes");
 const annoncesRoutes = require("./routes/annonces.routes");
 const quartiersRoutes = require("./routes/quartiers.routes");
 const authRoutes = require("./routes/auth.routes");
@@ -69,6 +70,7 @@ app.get("/", (req, res) => {
 
 // Demarrage: on attend la connexion DB avant d'ecouter
 connectDB()
+  .then(() => ensureAnnonceIndexes())
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Serveur lance sur http://localhost:${PORT}`);

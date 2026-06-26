@@ -28,7 +28,10 @@ async function run() {
   if (aIndexText) {
     console.log("\n[OK] Un index 'text' existe deja.");
   } else {
-    const nom = await annonces.createIndex({ titre: "text", description: "text" });
+    const nom = await annonces.createIndex(
+      { titre: "text", description: "text" },
+      { default_language: "french", name: "titre_description_text" }
+    );
     console.log(`\n[CREE] Index text -> ${nom}`);
   }
 
